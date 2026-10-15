@@ -793,7 +793,7 @@
 - 여행지: ${state.selectedCityName} (${state.selectedCityProv})
 - 기간: ${state.startDate} ~ ${state.endDate} (총 ${state.tripDays}일)
 - 첫날 도착 시각: ${state.arrivalHour}:00
-- 하루 스팟 수: ${state.density}곳 (반드시 매일 정확히 ${state.density}개의 장소를 리스트에 포함할 것!)
+- 하루 스팟 수: ${state.density}곳 (각 일자별 배열에 반드시 정확히 ${state.density}개의 장소 객체를 채워서 반환할 것!)
 - 동행: ${cMeta.label} / 목적: ${pMeta.label}
 - 이동수단: ${state.plannedTransport === 'car' ? '자차' : '대중교통'}
 - 숙소: ${stayDesc}
@@ -852,7 +852,7 @@
         let newDaysData = { 1: [], 2: [], 3: [], 4: [] };
         for (let d = 1; d <= state.tripDays; d++) {
           const dayArr = parsed?.days?.[String(d)] || parsed?.days?.[d] || [];
-          newDaysData[d] = dayArr.map((item, idx) => ({
+          let mappedSpots = dayArr.map((item, idx) => ({
             id: `live_d${d}_${idx}_${Date.now()}`,
             time: item.time || "14:00",
             stayMin: Number(item.stayMin) || 70,
@@ -868,6 +868,16 @@
             desc: item.desc || "",
             planB: item.planB && item.planB.name ? item.planB : null
           }));
+
+          // 만약 AI가 스팟을 부족하게 반환했으면 후보 풀에서 강제로 채워넣어 밀도 보장
+          if (mappedSpots.length < state.density) {
+            const fallbackPool = getCandidatePool(state.selectedCityName);
+            while (mappedSpots.length < state.density && fallbackPool.length > 0) {
+              const extra = fallbackPool.shift();
+              mappedSpots.push({ ...extra, id: `extra_${d}_${Date.now()}`, time: `${12 + (mappedSpots.length * 2)}:00` });
+            }
+          }
+          newDaysData[d] = mappedSpots;
         }
 
         state.daysData = newDaysData;
@@ -1216,6 +1226,11 @@
           `;
         } else {
           item.className = "p-3.5 rounded-2xl border bg-white border-slate-200 shadow-sm space-y-2";
+          
+          // 순수 JS DOM 조작으로 버튼 생성 (템플릿 리터럴 노출 원천 차단)
+          const badgeHtml = (resData && resData.badgeText) ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">${resData.badgeText}</span>` : '';
+          const resBtnHtml = (resData && resData.btnLabel) ? `<a href="${resData.url}" target="_blank" class="px-2.5 py-1 rounded bg-rose-600 text-white font-bold">${resData.btnLabel}</a>` : '';
+
           item.innerHTML = `
             <div class="flex justify-between items-start gap-2">
               <div class="flex items-start gap-2.5 flex-1">
@@ -1226,7 +1241,7 @@
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">${spot.category}</span>
                     ${spot.isNewHot ? `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500 text-white">🔥 신상·핫플</span>` : ''}
-                    ${resData ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">\${resData.badgeText}</span>` : ''}
+                    ${badgeHtml}
                   </div>
                   <h4 class="text-sm font-bold text-slate-900 mt-1">${spot.name}</h4>
                   <p class="text-xs text-slate-600 mt-0.5">${spot.desc}</p>
@@ -1240,7 +1255,7 @@
                 <button onclick="deleteSpot(${index})" class="px-2 py-1 rounded bg-rose-50 text-rose-600 font-semibold">🗑️ 삭제</button>
               </div>
               <div class="flex gap-1">
-                ${resData ? `<a href="\${resData.url}" target="_blank" class="px-2.5 py-1 rounded bg-rose-600 text-white font-bold">\${resData.btnLabel}</a>` : ''}
+                ${resBtnHtml}
                 <a href="https://map.naver.com/p/search/${encodeURIComponent(state.selectedCityName + ' ' + spot.name)}" target="_blank" class="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-bold">지도 ↗</a>
               </div>
             </div>
@@ -1330,7 +1345,7 @@
         div.innerHTML = `<h3 class="text-sm font-bold">${r.name}</h3><p class="text-xs text-slate-500">${r.desc}</p><button onclick="startUnplanned('${r.name}', '${r.prov}', ${days})" class="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg">일정 생성</button>`;
         container.appendChild(div);
       });
-      container.classList.add('hidden');
+      container.classList.remove('hidden');
     }
 
     function startUnplanned(name, prov, days) {
