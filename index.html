@@ -264,7 +264,7 @@
           </p>
         </div>
 
-        <!-- 4. 숙소 설정 모듈 (복구 완료) -->
+        <!-- 4. 숙소 설정 모듈 (완벽 복구 완료) -->
         <div class="bg-white p-4 rounded-2xl border-2 border-indigo-500/80 shadow-sm space-y-3">
           <div class="flex justify-between items-center">
             <label class="text-xs font-bold text-slate-900">4️⃣ 🏨 숙소 설정 (<span id="hotel-city-label" class="text-indigo-600">경주시</span> 기준)</label>
@@ -677,10 +677,14 @@
       ];
     }
 
+    // 풍성하게 확충된 폴백 데이터 풀 (일정 개수 2개 제한 문제 원천 해결)
     const CITY_SPOTS_POOL = {
       "경주시": [
         { id: "gj_hn_morning", zoneGroup: "hwangnam", slot: "morning", stayMin: 75, name: "대릉원 천마총 & 미추왕릉 고분군 산책", category: "명소", zone: "황남동(시내권)", indoor: false, desc: "고분군 소나무숲과 돌담길 포토존", travelMin: 10 },
-        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, breakTime: "15:00~17:00", desc: "대표 로컬 미식", travelMin: 10 }
+        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, breakTime: "15:00~17:00", desc: "대표 로컬 미식", travelMin: 10 },
+        { id: "gj_hn_afternoon", zoneGroup: "hwangnam", slot: "afternoon", stayMin: 80, name: "교촌한옥마을 & 최부자댁 고택", category: "명소", zone: "교동(시내권)", indoor: false, desc: "한옥 전통가옥과 월정교 산책", travelMin: 10 },
+        { id: "gj_hn_cafe", zoneGroup: "hwangnam", slot: "cafe", stayMin: 60, name: "황리단길 기와 루프탑 한옥카페", category: "카페", zone: "황남동(시내권)", indoor: true, desc: "기와지붕 뷰 디저트 카페", travelMin: 10 },
+        { id: "gj_hn_night", zoneGroup: "hwangnam", slot: "night", stayMin: 70, name: "동궁과 월지 야경 산책", category: "야경", zone: "인왕동(시내권)", indoor: false, desc: "신라 왕궁 연못의 환상적인 야간 조명", travelMin: 10 }
       ]
     };
 
@@ -700,6 +704,7 @@
     let state = {
       mode: 'planned',
       timeFormat: '24h',
+      geminiModel: 'gemini-2.5-flash',
       isLiveGenerated: false,
       groundingSources: [],
       liveSwapPool: [],
@@ -782,7 +787,7 @@
 - 여행지: ${state.selectedCityName} (${state.selectedCityProv})
 - 기간: ${state.startDate} ~ ${state.endDate} (총 ${state.tripDays}일)
 - 첫날 도착 시각: ${state.arrivalHour}:00
-- 하루 스팟 수: ${state.density}곳
+- 하루 스팟 수: ${state.density}곳 (각 일자별 배열에 반드시 정확히 ${state.density}개의 장소 객체를 채워서 반환할 것!)
 - 동행: ${cMeta.label} / 목적: ${pMeta.label}
 - 이동수단: ${state.plannedTransport === 'car' ? '자차' : '대중교통'}
 - 숙소: ${stayDesc}
