@@ -264,7 +264,7 @@
           </p>
         </div>
 
-        <!-- 4. 숙소 설정 모듈 (완벽 복구 완료) -->
+        <!-- 4. 숙소 설정 모듈 (완벽 복구) -->
         <div class="bg-white p-4 rounded-2xl border-2 border-indigo-500/80 shadow-sm space-y-3">
           <div class="flex justify-between items-center">
             <label class="text-xs font-bold text-slate-900">4️⃣ 🏨 숙소 설정 (<span id="hotel-city-label" class="text-indigo-600">경주시</span> 기준)</label>
@@ -677,34 +677,9 @@
       ];
     }
 
-    // 풍성하게 확충된 폴백 데이터 풀 (일정 개수 2개 제한 문제 원천 해결)
-    const CITY_SPOTS_POOL = {
-      "경주시": [
-        { id: "gj_hn_morning", zoneGroup: "hwangnam", slot: "morning", stayMin: 75, name: "대릉원 천마총 & 미추왕릉 고분군 산책", category: "명소", zone: "황남동(시내권)", indoor: false, desc: "고분군 소나무숲과 돌담길 포토존", travelMin: 10 },
-        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, breakTime: "15:00~17:00", desc: "대표 로컬 미식", travelMin: 10 },
-        { id: "gj_hn_afternoon", zoneGroup: "hwangnam", slot: "afternoon", stayMin: 80, name: "교촌한옥마을 & 최부자댁 고택", category: "명소", zone: "교동(시내권)", indoor: false, desc: "한옥 전통가옥과 월정교 산책", travelMin: 10 },
-        { id: "gj_hn_cafe", zoneGroup: "hwangnam", slot: "cafe", stayMin: 60, name: "황리단길 기와 루프탑 한옥카페", category: "카페", zone: "황남동(시내권)", indoor: true, desc: "기와지붕 뷰 디저트 카페", travelMin: 10 },
-        { id: "gj_hn_night", zoneGroup: "hwangnam", slot: "night", stayMin: 70, name: "동궁과 월지 야경 산책", category: "야경", zone: "인왕동(시내권)", indoor: false, desc: "신라 왕궁 연못의 환상적인 야간 조명", travelMin: 10 }
-      ]
-    };
-
-    function getCandidatePool(cityName) {
-      if (cityName.includes("경주") && CITY_SPOTS_POOL["경주시"]) return JSON.parse(JSON.stringify(CITY_SPOTS_POOL["경주시"]));
-      const shortName = cityName.replace(/시|군|광역시/g, "");
-      return [
-        { id: "g1", zoneGroup: "center", slot: "morning", stayMin: 75, name: `${shortName} 대표 역사읍성 산책로`, category: "명소", zone: `${shortName} 중심권`, indoor: false, desc: "역사 산책 코스", travelMin: 12 },
-        { id: "g2", zoneGroup: "center", slot: "lunch", stayMin: 70, name: `${shortName} 향토 한정식 & 로컬 미식`, category: "식당", zone: `${shortName} 중심권`, indoor: true, breakTime: "15:00~17:00", desc: "로컬 맛집", travelMin: 12 },
-        { id: "g3", zoneGroup: "center", slot: "afternoon", stayMin: 75, name: `${shortName} 문화거리 & 전시관 투어`, category: "명소", zone: `${shortName} 중심권`, indoor: false, desc: "도보 여행지", travelMin: 10 },
-        { id: "g4", zoneGroup: "center", slot: "cafe", stayMin: 60, name: `${shortName} 파노라마 루프탑 카페`, category: "카페", zone: `${shortName} 중심권`, indoor: true, desc: "디저트 카페", travelMin: 12 },
-        { id: "g5", zoneGroup: "center", slot: "sunset", stayMin: 60, name: `${shortName} 강변·해안 노을 전망대`, category: "일몰명소", zone: `${shortName} 전망권역`, indoor: false, desc: "일몰 뷰포인트", travelMin: 15 },
-        { id: "g6", zoneGroup: "center", slot: "night", stayMin: 70, name: `${shortName} 야간 경관조명교 & 야시장`, category: "야경", zone: `${shortName} 중심권`, indoor: false, desc: "야간 산책과 야시장", travelMin: 12 }
-      ];
-    }
-
     let state = {
       mode: 'planned',
       timeFormat: '24h',
-      geminiModel: 'gemini-2.5-flash',
       isLiveGenerated: false,
       groundingSources: [],
       liveSwapPool: [],
@@ -740,6 +715,7 @@
       setDurationDays(2);
       document.getElementById('plan-arrival').value = "12";
       state.arrivalHour = 12;
+      setStayMode('single');
       document.addEventListener('click', (e) => {
         if (!e.target.closest('#city-search-input') && !e.target.closest('#city-autocomplete')) {
           document.getElementById('city-autocomplete').classList.add('hidden');
@@ -758,7 +734,7 @@
       return JSON.parse(cleaned);
     }
 
-    // Netlify 서버리스 함수 호출
+    // Netlify 서버리스 함수 호출 및 숙소 노드 최종 병합
     async function fetchLiveItineraryWithGemini() {
       const overlay = document.getElementById('live-loading-overlay');
       const stepEl = document.getElementById('loading-step');
@@ -870,6 +846,7 @@
         state.daysData = newDaysData;
         state.isLiveGenerated = true;
 
+        // 숙소 노드 강제 병합
         for (let d = 1; d < state.tripDays; d++) {
           if (state.stayMode === 'recommend') {
             const aiRec = (parsed.recommendedHotels || []).find(h => Number(h.night) === d) || {};
@@ -1141,14 +1118,35 @@
       fetchLiveItineraryWithGemini();
     }
 
+    // 폴백 빌더에도 숙소 노드 병합 추가
     function buildSlotVerifiedItinerary() {
       let pool = getCandidatePool(state.selectedCityName);
+      const zoneDefs = getHotelZonesForCity(state.selectedCityName);
       let groupedByDay = { 1: [], 2: [], 3: [], 4: [] };
 
       for (let d = 1; d <= state.tripDays; d++) {
         groupedByDay[d] = pool.slice(0, state.density).map((s, i) => ({ ...s, time: `${10 + (i * 2)}:00` }));
       }
       state.daysData = groupedByDay;
+
+      for (let d = 1; d < state.tripDays; d++) {
+        const fallbackZone = zoneDefs[0];
+        state.daysData[d].push({
+          id: `fallback_hotel_${d}`,
+          time: "20:30",
+          stayMin: 60,
+          isHotelNode: true,
+          isRecommendHotel: true,
+          name: `💡 ${d}박차 숙소: [${fallbackZone.shortZone}]`,
+          category: "예약숙소",
+          zone: fallbackZone.shortZone,
+          indoor: true,
+          desc: fallbackZone.recommendReason,
+          travelMin: 12
+        });
+        recalculateHotelCheckinTime(d);
+      }
+
       state.activeDay = 1;
       document.getElementById('view-unplanned').classList.add('hidden');
       document.getElementById('view-planned').classList.add('hidden');
