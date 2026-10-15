@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>트립싱크 (TripSync) - AI 실시간 여행 일정 스케줄러</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background-color: #0f172a; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade { animation: fadeIn 0.2s ease-out forwards; }
+    @keyframes pulseGlow { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    .animate-glow { animation: pulseGlow 1.5s infinite ease-in-out; }
+  </style>
+</head>
+<body class="flex justify-center items-start min-h-screen py-4 px-2 sm:py-8">
+
+  <!-- 스마트폰 앱 프레임 -->
+  <div class="w-full max-w-[430px] bg-slate-50 rounded-[32px] shadow-2xl overflow-hidden border-[6px] border-slate-800 flex flex-col min-h-[840px] max-h-[920px] relative">
+    
+    <!-- 상단 헤더 (일반 사용자 배포용: API 키 입력 버튼 제거 및 상시 LIVE 표시) -->
+    <header class="bg-white px-5 pt-4 pb-3 border-b border-slate-100 sticky top-0 z-30">
+      <div class="flex justify-between items-center mb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">T</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="font-bold text-slate-900 text-base leading-tight">TripSync AI</h1>
+              <span class="text-[10px] bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> LIVE
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400">실시간 신상 핫플 검색 & 동선 최적화 스케줄러</p>
+          </div>
+        </div>
+
+        <button onclick="resetApp()" class="text-xs font-medium text-slate-500 hover:text-indigo-600 bg-slate-100 px-2.5 py-1.5 rounded-lg transition">
+          초기화 ↺
+        </button>
+      </div>
+
+      <!-- 메인 모드 전환 탭 -->
+      <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl">
+        <button id="tab-unplanned" onclick="switchMode('unplanned')" class="py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+          🧭 계획 없어요 (여행지 추천)
+        </button>
+        <button id="tab-planned" onclick="switchMode('planned')" class="py-2 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm">
+          📅 계획 있어요 (맞춤 스케줄)
+        </button>
+      </div>
+    </header>
+
+    <!-- 실시간 웹 검색 로딩 오버레이 -->
+    <div id="live-loading-overlay" class="hidden absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 text-center text-white">
+      <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl shadow-lg shadow-indigo-500/40 animate-bounce mb-4">
+        🌐
+      </div>
+      <span class="text-[11px] font-extrabold uppercase tracking-widest bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 px-3 py-1 rounded-full mb-2">
+        AI Live Search Engine
+      </span>
+      <h3 id="loading-title" class="text-base font-bold leading-snug">실시간으로 신상 맛집과 관광지를 검색하고 있습니다...</h3>
+      <p id="loading-step" class="text-xs text-slate-300 mt-2 animate-glow">
+        🔍 최근 오픈한 로컬 맛집 · 카페 · 브레이크타임 정보 수집 중
+      </p>
+      <div class="w-full max-w-[240px] bg-slate-700 h-1.5 rounded-full overflow-hidden mt-5">
+        <div id="loading-bar" class="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 h-full w-1/3 transition-all duration-500"></div>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-4">실시간 웹 검색 및 동선 검증에 약 5~12초가 소요됩니다.</p>
+    </div>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-1 overflow-y-auto no-scrollbar p-5 space-y-4" id="main-content">
+
+      <!-- [트랙 A] 무계획 유저 온보딩 화면 -->
+      <section id="view-unplanned" class="hidden space-y-4 animate-fade">
+        <div class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-4 text-white shadow-md">
+          <span class="text-[11px] uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full font-semibold">Track A · 탐색형 추천</span>
+          <h2 class="text-lg font-bold mt-2">어디로 갈지 고민되시나요?</h2>
+          <p class="text-xs text-indigo-100 mt-1">계절, 테마, 이동 수단만 고르시면 최적의 여행지와 일자별 동선, 추천 숙박 권역까지 한 번에 제안해 드립니다.</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2.5">
+          <label class="text-xs font-bold text-slate-700">1️⃣ 떠나고 싶은 계절</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="selectChip('season', 'spring', this)" class="chip-season py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">🌸 봄</button>
+            <button onclick="selectChip('season', 'summer', this)" class="chip-season py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">🌊 여름</button>
+            <button onclick="selectChip('season', 'autumn', this)" class="chip-season py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">🍁 가을</button>
+            <button onclick="selectChip('season', 'winter', this)" class="chip-season py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">❄️ 겨울</button>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2.5">
+          <label class="text-xs font-bold text-slate-700">2️⃣ 선호하는 여행 테마</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="selectChip('vibe', 'ocean', this)" class="chip-vibe py-2.5 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">🌊 바다·윤슬</button>
+            <button onclick="selectChip('vibe', 'history', this)" class="chip-vibe py-2.5 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">🏯 역사·야경</button>
+            <button onclick="selectChip('vibe', 'nature', this)" class="chip-vibe py-2.5 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">🌲 숲·호수힐링</button>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2.5">
+          <label class="text-xs font-bold text-slate-700">3️⃣ 이동 수단 & 희망 기간</label>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <button onclick="selectChip('transport', 'car', this)" class="chip-transport py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">🚗 자차·렌터카</button>
+            <button onclick="selectChip('transport', 'transit', this)" class="chip-transport py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">🚌 대중교통·도보</button>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="selectChip('days', 2, this)" class="chip-days py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">1박 2일</button>
+            <button onclick="selectChip('days', 3, this)" class="chip-days py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">2박 3일</button>
+            <button onclick="selectChip('days', 4, this)" class="chip-days py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">3박 4일</button>
+          </div>
+        </div>
+
+        <button onclick="recommendDestinations()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-200 transition">
+          ✨ 맞춤 여행지 & 추천 코스 보기
+        </button>
+
+        <div id="unplanned-results" class="hidden space-y-3 pt-2"></div>
+      </section>
+
+      <!-- [트랙 B] 유계획 유저 조건 입력 화면 -->
+      <section id="view-planned" class="space-y-4 animate-fade">
+        
+        <!-- 실시간 AI 검색 트렌드 선호도 배너 -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-3.5 text-white shadow-md space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🌐</span>
+              <div>
+                <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>AI 실시간 신상·핫플 검색 엔진</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950 font-extrabold">자동 연동됨</span>
+                </h3>
+                <p class="text-[10px] text-slate-300 mt-0.5">
+                  최근 오픈한 신상 맛집·카페와 유명 랜드마크의 영업시간·동선을 실시간으로 분석합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2 text-[11px]">
+            <span class="text-indigo-200 font-semibold">✨ 장소 추천 스타일</span>
+            <select id="search-trend-pref" class="bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1 text-[11px] font-bold focus:outline-none">
+              <option value="balanced">신상 핫플 + 유명 명소 균형 배합</option>
+              <option value="new_hot">최근 오픈한 신상 맛집·카페 최우선</option>
+              <option value="local_authentic">현지인 노포 맛집 + 핵심 명소 위주</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 1. 전국 시/군 검색 & 날짜·기간 설정 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 relative">
+          <label class="text-xs font-bold text-slate-700 flex justify-between items-center">
+            <span>1️⃣ 여행지 & 일정 선택 (전국 시·군)</span>
+            <span id="selected-city-badge" class="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold">선택됨: 경주시 (경북)</span>
+          </label>
+          
+          <div class="relative">
+            <input 
+              type="text" 
+              id="city-search-input" 
+              placeholder="어느 시/군으로 가시나요? (예: 경주, 진주, 남해, 강릉, 성수동, 도쿄...)" 
+              value="경주시"
+              oninput="handleCitySearch(this.value)"
+              onfocus="handleCitySearch(this.value)"
+              class="w-full bg-slate-50 border-2 border-indigo-100 focus:border-indigo-500 rounded-xl pl-9 pr-16 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none transition"
+            />
+            <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
+            <button onclick="clearCitySearch()" class="absolute right-2 top-2 text-[11px] text-slate-400 hover:text-slate-600 bg-slate-200/70 px-2 py-1 rounded-md font-semibold">지우기</button>
+            <div id="city-autocomplete" class="hidden absolute left-0 right-0 top-11 bg-white border border-slate-200 rounded-xl shadow-xl max-h-52 overflow-y-auto z-40 divide-y divide-slate-100"></div>
+          </div>
+
+          <!-- 빠른 인기 시/군 칩 -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+            <span class="text-[10px] text-slate-400 whitespace-nowrap font-medium">인기지역:</span>
+            <button onclick="selectCityByName('경주시', '경북')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">경주시</button>
+            <button onclick="selectCityByName('진주시', '경남')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">진주시</button>
+            <button onclick="selectCityByName('남해군', '경남')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">남해군</button>
+            <button onclick="selectCityByName('통영시', '경남')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">통영시</button>
+            <button onclick="selectCityByName('제주도', '제주')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">제주도</button>
+            <button onclick="selectCityByName('강릉시', '강원')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">강릉시</button>
+            <button onclick="selectCityByName('여수시', '전남')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">여수시</button>
+            <button onclick="selectCityByName('전주시', '전북')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">전주시</button>
+          </div>
+
+          <!-- 기간 빠른 설정 버튼 -->
+          <div class="pt-2 border-t border-slate-100">
+            <div class="flex justify-between items-center mb-1.5">
+              <span class="text-[11px] font-bold text-slate-600">🗓️ 여행 기간 선택</span>
+              <span id="duration-badge" class="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">현재: 1박 2일 (총 2일)</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button onclick="setDurationDays(2)" id="btn-dur-2" class="py-1.5 rounded-lg text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition">1박 2일</button>
+              <button onclick="setDurationDays(3)" id="btn-dur-3" class="py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">2박 3일</button>
+              <button onclick="setDurationDays(4)" id="btn-dur-4" class="py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">3박 4일</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 pt-1">
+            <div>
+              <label class="text-[11px] font-bold text-slate-600 block mb-1">시작일</label>
+              <input type="date" id="plan-start" value="2026-10-17" onchange="onStartDateInput()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-600 block mb-1">종료일</label>
+              <input type="date" id="plan-end" value="2026-10-18" onchange="onEndDateInput()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 동행자 & 여행 목적 선택 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-bold text-slate-800">2️⃣ 👥 누구와, 어떤 목적으로 가시나요?</label>
+            <span class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">미정 선택 가능</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-semibold text-slate-600 block">동행자 선택</span>
+            <div class="grid grid-cols-5 gap-1">
+              <button onclick="setPlannedCompanion('undecided', this)" class="chip-p-comp py-2 px-1 rounded-xl text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition">🤷 미정</button>
+              <button onclick="setPlannedCompanion('solo', this)" class="chip-p-comp py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">🧍 혼자</button>
+              <button onclick="setPlannedCompanion('couple', this)" class="chip-p-comp py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">💑 연인·부부</button>
+              <button onclick="setPlannedCompanion('family', this)" class="chip-p-comp py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">👨‍👩‍👧 가족</button>
+              <button onclick="setPlannedCompanion('friends', this)" class="chip-p-comp py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">👯 친구</button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 pt-1">
+            <span class="text-[11px] font-semibold text-slate-600 block">여행 목적 (컨셉)</span>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button onclick="setPlannedPurpose('undecided', this)" class="chip-p-purp py-2 px-2 rounded-xl text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition">✨ 미정 (핵심표준)</button>
+              <button onclick="setPlannedPurpose('healing', this)" class="chip-p-purp py-2 px-2 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">🌿 휴양·힐링</button>
+              <button onclick="setPlannedPurpose('foodie', this)" class="chip-p-purp py-2 px-2 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">🍲 미식·로컬맛집</button>
+              <button onclick="setPlannedPurpose('trendy', this)" class="chip-p-purp py-2 px-2 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">📸 감성·인생샷</button>
+              <button onclick="setPlannedPurpose('sightseeing', this)" class="chip-p-purp py-2 px-2 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition col-span-2">🏛️ 역사·랜드마크 정복</button>
+            </div>
+          </div>
+
+          <p id="companion-purpose-hint" class="text-[11px] text-slate-600 bg-slate-50 px-2.5 py-2 rounded-lg leading-relaxed">
+            💡 <b>현재 설정: [동행: 미정] · [목적: 미정]</b> — 명소·식사·카페·야경이 겹치지 않고 차례대로 이어지는 정석 밸런스 코스로 추천합니다.
+          </p>
+        </div>
+
+        <!-- 3. 이동 수단 선택 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2.5">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-bold text-slate-800">3️⃣ 🚦 이동 수단 선택</label>
+            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">이동시간 & 체크인 시각 자동 반영</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setPlannedTransport('car')" id="btn-trans-car" class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 border-indigo-600 bg-indigo-50 text-indigo-700 transition flex items-center justify-center gap-1.5">
+              <span>🚗</span> 자차 · 렌터카
+            </button>
+            <button onclick="setPlannedTransport('transit')" id="btn-trans-transit" class="py-2.5 px-3 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:border-slate-300 transition flex items-center justify-center gap-1.5">
+              <span>🚌</span> 대중교통 · 도보
+            </button>
+          </div>
+          <p id="transport-hint" class="text-[11px] text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg">
+            🚗 <b>자차·렌터카 모드:</b> 낮에는 주차가 편한 외곽 명소를 돌고, 저녁에 숙소 권역으로 들어오는 동선을 구성합니다.
+          </p>
+        </div>
+
+        <!-- 4. 숙소 설정 모듈 -->
+        <div class="bg-white p-4 rounded-2xl border-2 border-indigo-500/80 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-bold text-slate-900">4️⃣ 🏨 숙소 설정 (<span id="hotel-city-label" class="text-indigo-600">경주시</span> 기준)</label>
+            <span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">체크인 시간 자동 계산</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
+            <button onclick="setStayMode('recommend')" id="btn-stay-recommend" class="py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight">
+              ✨ 숙소 미정<br><span class="text-[9px] font-normal">(위치 추천받기)</span>
+            </button>
+            <button onclick="setStayMode('single')" id="btn-stay-single" class="py-2 px-1 text-[11px] font-bold rounded-lg bg-white text-indigo-600 shadow-sm transition leading-tight">
+              🏠 예약 완료<br><span class="text-[9px] font-normal">(한 숙소 연박/1박)</span>
+            </button>
+            <button onclick="setStayMode('multi')" id="btn-stay-multi" class="py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight">
+              🚐 예약 완료<br><span class="text-[9px] font-normal">(일자별 숙소 다름)</span>
+            </button>
+          </div>
+
+          <div id="hotel-recommend-box" class="hidden bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 space-y-1">
+            <p class="font-bold">💡 AI 최적 숙박 위치(권역) 자동 추천 모드</p>
+            <p class="text-[11px] text-emerald-800 leading-relaxed">
+              마지막 일정이 끝나는 시각과 이동 거리를 계산하여, 가장 편하게 입실할 수 있는 숙박 동네와 예상 체크인 시각을 제안합니다.
+            </p>
+          </div>
+
+          <div id="hotel-input-container" class="space-y-2.5">
+            <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+              <label id="label-hotel-1" class="text-[11px] font-bold text-indigo-900 block">📍 예약한 숙소 권역 선택</label>
+              <select id="hotel-zone-1" onchange="updateHotelPreviewHint()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500">
+              </select>
+              <input 
+                type="text" 
+                id="hotel-name-1" 
+                placeholder="숙소명을 입력하거나 비워두세요 (예: 황리단길 한옥스테이)" 
+                value=""
+                class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div id="hotel-day2-box" class="hidden space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+              <label class="text-[11px] font-bold text-indigo-900 block">📍 2박차 이후 숙소 권역 선택</label>
+              <select id="hotel-zone-2" onchange="updateHotelPreviewHint()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500">
+              </select>
+              <input 
+                type="text" 
+                id="hotel-name-2" 
+                placeholder="2박차 숙소명을 입력하거나 비워두세요" 
+                value=""
+                class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div id="hotel-strategy-hint" class="bg-amber-50/90 border border-amber-200/80 rounded-xl p-2.5 text-[11px] text-amber-950 leading-relaxed">
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. 첫날 도착 시간 & 일정 밀도 & 필수 스팟 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-bold text-slate-700">5️⃣ ⏰ 첫날 도착 시간</label>
+            <select id="plan-arrival" onchange="onArrivalChange()" class="bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-indigo-700 focus:outline-none">
+              <option value="10">오전 10:00 도착 (오전 명소부터 시작)</option>
+              <option value="12" selected>낮 12:00 도착 (점심 1곳 → 오후명소 → 카페 → 야경)</option>
+              <option value="15">오후 15:00 도착 (오후명소 → 카페 → 일몰 → 야경)</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-medium text-slate-600">⚡ 하루 방문 스팟 수 (숙소 제외)</span>
+              <span id="density-label" class="font-bold text-indigo-600">표준 (하루 4~5곳)</span>
+            </div>
+            <input type="range" id="plan-density" min="3" max="5" value="4" oninput="updateDensityLabel(this.value)" class="w-full accent-indigo-600 cursor-pointer">
+          </div>
+
+          <div class="pt-2 border-t border-slate-100">
+            <label class="text-xs font-bold text-slate-700 block mb-1">📌 꼭 가고 싶은 장소 직접 입력 또는 선택 (선택사항)</label>
+            <input 
+              type="text" 
+              id="plan-pin-custom" 
+              placeholder="무조건 가고 싶은 식당·카페·명소 이름 입력 (비워두면 AI 추천)" 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 mb-1.5"
+            />
+            <select id="plan-pin" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800">
+            </select>
+          </div>
+        </div>
+
+        <button onclick="generateItineraryFromPlanned()" id="btn-generate-main" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-200 transition">
+          🌐 AI 실시간 웹 검색으로 맞춤 일정 생성하기
+        </button>
+      </section>
+
+      <!-- [결과 화면] 생성된 일정표 & 풀 커스텀 에디터 -->
+      <section id="view-itinerary" class="hidden space-y-3.5 animate-fade">
+        
+        <!-- 여행 요약 배너 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex justify-between items-start gap-2">
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap" id="itin-badges"></div>
+              <h2 id="itin-title" class="text-lg font-bold text-slate-900 mt-1"></h2>
+              <p id="itin-meta" class="text-xs text-slate-500 mt-0.5"></p>
+            </div>
+            <div class="flex flex-col gap-1 items-end">
+              <button onclick="backToEdit()" class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg whitespace-nowrap">
+                조건 재설정
+              </button>
+              <button onclick="triggerLiveRegenerate()" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg whitespace-nowrap hover:bg-emerald-100">
+                🌐 AI 신상 재검색
+              </button>
+            </div>
+          </div>
+
+          <!-- 12시간제 / 24시간제 실시간 표기 선택 바 -->
+          <div class="flex items-center justify-between bg-slate-100 p-2 px-3 rounded-xl">
+            <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+              <span>🕒 시간 표기 방식 선택</span>
+            </span>
+            <div class="inline-flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm">
+              <button id="btn-fmt-24" onclick="setTimeFormat('24h')" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white transition">
+                24시간제 (14:00)
+              </button>
+              <button id="btn-fmt-12" onclick="setTimeFormat('12h')" class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition">
+                12시간제 (오후 2:00)
+              </button>
+            </div>
+          </div>
+
+          <!-- 숙소 거점 안내 박스 -->
+          <div id="hotel-route-summary" class="bg-indigo-950 text-white p-3 rounded-xl text-xs space-y-1 leading-relaxed">
+          </div>
+
+          <!-- 구글 실시간 검색 출처(Grounding Sources) 표시 박스 -->
+          <div id="grounding-sources-box" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-emerald-950 space-y-1">
+          </div>
+
+          <!-- 실시간 날씨 & 우천 Plan B 스왑 -->
+          <div class="flex items-center justify-between bg-slate-50 p-2.5 px-3 rounded-xl border border-slate-200/80">
+            <div class="flex items-center gap-2">
+              <span id="weather-icon" class="text-xl">☀️</span>
+              <div>
+                <p id="weather-status" class="text-xs font-bold text-slate-800">맑음 · 야외 활동 최적</p>
+                <p class="text-[10px] text-slate-500">우천 시 반경 내 실내 코스(Plan B)로 즉시 전환</p>
+              </div>
+            </div>
+            <button id="btn-planb" onclick="toggleRainPlanB()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 text-sky-700 hover:bg-sky-200 transition whitespace-nowrap">
+              🌧️ 우천 Plan B 켜기
+            </button>
+          </div>
+
+          <!-- 시스템 검증 알림창 -->
+          <div id="validation-banner" class="hidden rounded-xl p-3 text-xs space-y-1"></div>
+        </div>
+
+        <!-- Day 1 ~ Day N 탭 -->
+        <div class="flex gap-1.5" id="day-tabs-container"></div>
+
+        <!-- 타임라인 리스트 -->
+        <div id="timeline-container" class="space-y-3"></div>
+
+        <!-- 이 날짜에 새 일정 추가하기 버튼 -->
+        <button onclick="openAddSpotModal()" class="w-full py-3 border-2 border-dashed border-indigo-400 hover:border-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700 font-bold text-xs rounded-2xl transition flex flex-col items-center justify-center gap-0.5">
+          <span>➕ Day <span id="add-btn-day-num">1</span>에 새 장소 추가 (직접 입력 또는 추천 후보)</span>
+          <span class="text-[10px] font-normal text-indigo-500">체크인 이후 야간 일정도 추가 가능하며 체크인 시간이 자동 재계산됩니다</span>
+        </button>
+
+        <!-- 휴대폰 기본 어플 저장 패널 -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-900">📲 수정 완료한 일정을 내 휴대폰에 저장</span>
+            <span class="text-[10px] text-indigo-600 font-semibold">선택한 시간제(12h/24h) 및 예약링크 포함</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="exportToNativeCalendar()" class="py-2.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1">
+              <span>📅</span> 기본 캘린더 등록 (.ics)
+            </button>
+            <button onclick="exportToNativeNotes()" class="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1">
+              <span>📝</span> 기본 메모·노트 저장
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- [모달 1] 🔄 다른 장소로 교체하기 모달 (실시간 AI 신상 후보 검색 포함) -->
+    <div id="modal-swap" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50 flex flex-col justify-end">
+      <div class="bg-white rounded-t-3xl p-5 max-h-[85%] flex flex-col space-y-3 animate-fade shadow-2xl">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+          <div>
+            <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">🔄 다른 장소로 변경</span>
+            <h3 class="text-sm font-bold text-slate-900 mt-1" id="swap-modal-title">교체할 장소를 선택하세요</h3>
+          </div>
+          <button onclick="closeSwapModal()" class="text-xs font-bold text-slate-400 hover:text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">닫기 ✕</button>
+        </div>
+
+        <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+          <div class="text-[11px] text-indigo-950">
+            <b>🌐 다른 신상 핫플을 찾으시나요?</b>
+            <p class="text-[10px] text-indigo-700">현재 시간대·권역에 맞는 최근 오픈 식당·카페를 실시간 검색합니다.</p>
+          </div>
+          <button onclick="searchLiveCandidatesForSwap()" id="btn-live-swap-search" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-xl whitespace-nowrap shadow-sm transition">
+            🌐 AI 신상 검색
+          </button>
+        </div>
+
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar" id="swap-filter-tabs">
+          <button onclick="filterSwapCandidates('all')" class="swap-tab px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white">전체 후보</button>
+          <button onclick="filterSwapCandidates('식당')" class="swap-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600">🍲 식당·미식</button>
+          <button onclick="filterSwapCandidates('명소')" class="swap-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600">🏛️ 명소·산책</button>
+          <button onclick="filterSwapCandidates('카페')" class="swap-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600">☕ 카페·디저트</button>
+          <button onclick="filterSwapCandidates('야경')" class="swap-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600">🌉 일몰·야경</button>
+        </div>
+
+        <div id="swap-candidates-list" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar"></div>
+      </div>
+    </div>
+
+    <!-- [모달 2] ➕ 새 장소 추가하기 & ✏️ 직접 수정 모달 -->
+    <div id="modal-add-edit" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50 flex flex-col justify-end">
+      <div class="bg-white rounded-t-3xl p-5 max-h-[88%] flex flex-col space-y-3.5 animate-fade shadow-2xl overflow-y-auto">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+          <div>
+            <span id="add-edit-badge" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">➕ 일정 커스텀 추가</span>
+            <h3 id="add-edit-title" class="text-sm font-bold text-slate-900 mt-1">새 일정 추가하기</h3>
+          </div>
+          <button onclick="closeAddEditModal()" class="text-xs font-bold text-slate-400 hover:text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">닫기 ✕</button>
+        </div>
+
+        <div id="add-mode-tabs" class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl">
+          <button onclick="switchAddTab('custom')" id="tab-add-custom" class="py-1.5 text-xs font-bold rounded-lg bg-white text-indigo-600 shadow-sm">✏️ 내 장소 직접 입력</button>
+          <button onclick="switchAddTab('pool')" id="tab-add-pool" class="py-1.5 text-xs font-semibold rounded-lg text-slate-600">✨ 추천 후보에서 추가</button>
+        </div>
+
+        <div id="form-custom-spot" class="space-y-3">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-[11px] font-bold text-slate-700 block mb-1">⏰ 시작 시각</label>
+              <input type="time" id="custom-spot-time" value="21:30" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-700 block mb-1">⏳ 체류(분)</label>
+              <input type="number" id="custom-spot-stay" value="60" step="10" min="20" max="240" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-700 block mb-1">🏷️ 카테고리</label>
+              <select id="custom-spot-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-800">
+                <option value="명소">🏛️ 명소·산책</option>
+                <option value="식당">🍲 식당·맛집</option>
+                <option value="카페">☕ 카페·디저트</option>
+                <option value="야경">🌉 야경·심야바</option>
+                <option value="예약숙소">🏨 숙소·체크인</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold text-slate-700 block mb-1">📍 장소 이름 (필수)</label>
+            <input type="text" id="custom-spot-name" placeholder="예: 체크인 후 황리단길 루프탑 맥주집, 새로 생긴 카페 등" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] font-bold text-slate-700 block mb-1">🗺️ 동네 / 권역 표시</label>
+              <input type="text" id="custom-spot-zone" placeholder="예: 황남동, 애월읍, 시내권" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-700 block mb-1">🎟️ 예약 버튼 표시 여부</label>
+              <select id="custom-spot-res" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800">
+                <option value="auto">자동 (식당·체험 시 표시)</option>
+                <option value="yes">예약 사이트 버튼 표시</option>
+                <option value="no">표시 안 함 (자유방문)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold text-slate-700 block mb-1">📝 상세 설명 또는 나만의 메모</label>
+            <input type="text" id="custom-spot-desc" placeholder="예: 숙소 체크인 후 도보 5분 이동해서 간단히 한잔!" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800">
+          </div>
+
+          <button onclick="saveCustomOrEditedSpot()" id="btn-save-custom" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition">
+            ✅ 일정표에 반영하기
+          </button>
+        </div>
+
+        <div id="pool-add-list" class="hidden flex-1 overflow-y-auto space-y-2 max-h-72 no-scrollbar"></div>
+      </div>
+    </div>
+
+    <!-- 토스트 알림창 -->
+    <div id="toast" class="hidden absolute bottom-5 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-xl z-50 text-center max-w-[92%]"></div>
+  </div>
+
+  <script>
+    // ==================== [날짜·시간 계산 및 12h/24h 포맷팅 유틸리티] ====================
+    function parseLocalDate(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    function formatLocalDate(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function timeToMinutes(timeStr) {
+      if (!timeStr) return 12 * 60;
+      const [h, m] = timeStr.split(':').map(Number);
+      return (h * 60) + (m || 0);
+    }
+
+    function minutesToTime24(totalMinutes, roundTo5 = false) {
+      let mins = Math.max(0, totalMinutes);
+      if (roundTo5) mins = Math.round(mins / 5) * 5;
+      const h = Math.floor(mins / 60) % 24;
+      const m = mins % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function formatDisplayTime(time24Str) {
+      if (!time24Str) return "";
+      if (state.timeFormat === '24h') return time24Str;
+      const [hStr, mStr] = time24Str.split(':');
+      const h = parseInt(hStr, 10);
+      const period = h < 12 ? '오전' : '오후';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${period} ${h12}:${mStr}`;
+    }
+
+    function getStayDurationMin(spot) {
+      if (spot.stayMin) return Number(spot.stayMin);
+      if (spot.isHotelNode) return 60;
+      const byCat = { '식당': 70, '카페': 60, '일몰명소': 60, '야경': 70, '명소': 75, '오전명소': 75 };
+      return byCat[spot.category] || 70;
+    }
+
+    function getReservationData(spot, cityName, isPlanBActive) {
+      if (spot.isHotelNode) return null;
+      if (spot.resOption === 'no') return null;
+
+      const targetName = isPlanBActive && spot.planB ? spot.planB.name : spot.name;
+
+      if (spot.resInfo && !isPlanBActive) {
+        return {
+          required: spot.resInfo.required,
+          badgeText: spot.resInfo.badge || "🎟️ 사전예약·웨이팅 연동",
+          btnLabel: spot.resInfo.btnLabel || "🎟️ 예약·웨이팅 ↗",
+          url: spot.resInfo.url || `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' ' + (spot.resInfo.querySuffix || '예약'))}`
+        };
+      }
+
+      if (isPlanBActive && spot.planB) {
+        return {
+          required: true,
+          badgeText: "🎟️ 온라인 티켓·사전예매 가능",
+          btnLabel: "🎟️ 네이버 티켓·예약 ↗",
+          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' 예약 티켓')}`
+        };
+      }
+
+      if (spot.category === '식당') {
+        return {
+          required: true,
+          badgeText: "🍽️ 스마트웨이팅 · 사전예약 확인",
+          btnLabel: "🍽️ 식당 예약·웨이팅 ↗",
+          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' 예약 캐치테이블')}`
+        };
+      }
+
+      const ticketKeywords = ["박물관", "전시관", "케이블카", "뮤지엄", "미술관", "수목원", "카멜리아힐", "한림공원", "성산일출봉", "불국사", "대릉원", "천마총", "동궁과 월지", "유등", "숲속의진주", "스카이워크", "루지", "요트", "다원", "전망대", "체험"];
+      if (spot.resOption === 'yes' || ticketKeywords.some(kw => targetName.includes(kw))) {
+        return {
+          required: true,
+          badgeText: "🎟️ 사전예약 · 입장권 예매 연동",
+          btnLabel: "🎟️ 사전예약·티켓 예매 ↗",
+          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' 네이버예약 입장권')}`
+        };
+      }
+      return null;
+    }
+
+    function recalculateHotelCheckinTime(dayNum) {
+      const list = state.daysData[dayNum];
+      if (!list || list.length === 0) return;
+
+      const hotelNode = list.find(s => s.isHotelNode);
+      if (!hotelNode) return;
+
+      if (hotelNode.manualTimeLocked) {
+        sortDayByTime(dayNum);
+        return;
+      }
+
+      const nonHotelSpots = list.filter(s => !s.isHotelNode);
+      if (nonHotelSpots.length === 0) {
+        hotelNode.time = "16:00";
+        return;
+      }
+
+      nonHotelSpots.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+      const lastSpot = nonHotelSpots[nonHotelSpots.length - 1];
+
+      const startMin = timeToMinutes(lastSpot.time || "18:00");
+      const stayMin = getStayDurationMin(lastSpot);
+      const endMin = startMin + stayMin;
+
+      const isTransit = state.plannedTransport === 'transit';
+      const baseTravel = Number(lastSpot.travelMin) || 15;
+      const moveToHotelMin = isTransit ? Math.round(baseTravel * 1.4) : baseTravel;
+
+      const arrivalAtHotelMin = endMin + moveToHotelMin;
+      hotelNode.time = minutesToTime24(arrivalAtHotelMin, true);
+      hotelNode.lastSpotName = lastSpot.name;
+      hotelNode.lastSpotEndTime = minutesToTime24(endMin, false);
+      hotelNode.moveMin = moveToHotelMin;
+
+      sortDayByTime(dayNum);
+    }
+
+    function sortDayByTime(dayNum) {
+      const list = state.daysData[dayNum];
+      if (!list) return;
+      list.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+    }
+
+    // ==================== [메타데이터 및 오프라인 폴백 DB] ====================
+    const COMPANION_META = {
+      undecided: { label: "동행 미정", badge: "🤷 동행 미정", tipPrefix: "누구와 가도 만족도가 높은 검증 스팟", hotelType: "접근성 좋은 시내 부티크 호텔 또는 리조트" },
+      solo: { label: "혼자 여행", badge: "🧍 나홀로", tipPrefix: "혼자 여유롭게 머물기 좋은 코스", hotelType: "역세권 비즈니스 호텔 또는 중심가 스테이" },
+      couple: { label: "연인·부부", badge: "💑 연인·부부", tipPrefix: "분위기와 포토존이 뛰어난 데이트 코스", hotelType: "야경·오션뷰 부티크 호텔, 감성 한옥 독채" },
+      family: { label: "가족 동반", badge: "👨‍👩‍👧‍👦 가족 여행", tipPrefix: "이동이 편안하고 주차·공간이 넉넉한 코스", hotelType: "주차가 편한 대형 패밀리 리조트, 온돌/스위트 호텔" },
+      friends: { label: "친구·모임", badge: "👯 친구·모임", tipPrefix: "함께 사진 찍고 미식을 즐기기 좋은 핫플", hotelType: "다인실 스테이, 중심가 호텔 트윈/패밀리룸" }
+    };
+
+    const PURPOSE_META = {
+      undecided: { label: "목적 미정(표준)", badge: "✨ 표준 밸런스", desc: "식사·명소·카페·야경이 겹치지 않는 정석 코스" },
+      healing: { label: "휴양·힐링", badge: "🌿 휴양·힐링", desc: "숲길·호수·바다 산책과 뷰 카페 중심 동선" },
+      foodie: { label: "미식·로컬맛집", badge: "🍲 미식투어", desc: "현지 노포 식당, 신상 맛집, 특산 디저트 중심 동선" },
+      trendy: { label: "감성·인생샷", badge: "📸 인생샷", desc: "신상 루프탑 카페, 소품샵, 일몰·야경 포토존 중심" },
+      sightseeing: { label: "역사·랜드마크", badge: "🏛️ 명소정복", desc: "지역 대표 핵심 랜드마크와 유적지 완주" }
+    };
+
+    const KOREA_REGIONS = [
+      { name: "경주시", prov: "경북", theme: "history", desc: "황리단길·대릉원 고분군과 동궁과월지 야경" },
+      { name: "진주시", prov: "경남", theme: "history", desc: "진주성·촉석루 남강 야경과 진양호 노을·로컬 미식" },
+      { name: "남해군", prov: "경남", theme: "ocean", desc: "독일마을과 다랭이논·보리암 해안 절경" },
+      { name: "통영시", prov: "경남", theme: "ocean", desc: "다도해 케이블카와 동피랑·제철 해산물 미식" },
+      { name: "거제시", prov: "경남", theme: "ocean", desc: "바람의 언덕과 몽돌해변·매미성 드라이브" },
+      { name: "제주도", prov: "제주", theme: "ocean", desc: "애월·협재 해안도로와 서귀포·성산 일주" },
+      { name: "강릉시", prov: "강원", theme: "ocean", desc: "안목해변 커피거리와 경포호 소나무숲" },
+      { name: "속초시", prov: "강원", theme: "ocean", desc: "설악산 케이블카와 영금정·중앙시장 투어" },
+      { name: "여수시", prov: "전남", theme: "ocean", desc: "오동도 동백열차와 해상케이블카·낭만포차" },
+      { name: "전주시", prov: "전북", theme: "history", desc: "전주한옥마을과 경기전 돌담길 미식 투어" },
+      { name: "안동시", prov: "경북", theme: "history", desc: "하회마을 고택과 월영교 야간 산책" },
+      { name: "부산광역시", prov: "부산", theme: "ocean", desc: "해운대·광안리 오션뷰와 감천문화마을" },
+      { name: "춘천시", prov: "강원", theme: "nature", desc: "소양강 스카이워크와 삼악산 호수케이블카" },
+      { name: "단양군", prov: "충북", theme: "nature", desc: "도담삼봉 유람선과 만천하 스카이워크" }
+    ];
+
+    const SPECIFIC_HOTEL_ZONES = {
+      "경주시": [
+        { id: "hwangnam", label: "황리단길 · 시내 · 대릉원 권역 (한옥스테이/감성숙소)", shortZone: "황남/황리단길 권역", recommendReason: "동궁과월지·첨성대 야경 관람 후 10분 내로 귀가할 수 있고, 체크인 이후 황리단길 심야 맥주·야간 산책을 나가기에도 가장 유리합니다.", recommendTypes: "감성 한옥스테이, 독채 펜션, 부티크 호텔", strategy: "🚗 <b>황리단길 숙소 맞춤 동선:</b> 1일차 낮에는 보문단지·불국사 외곽을 먼저 돌고, 오후 늦게 황리단길로 들어와 카페·첨성대·동궁과월지 야경 관람 후 종료 시각+이동시간에 맞춰 체크인합니다." },
+        { id: "bomun", label: "보문관광단지 권역 (호수 인근 호텔/리조트)", shortZone: "보문관광단지 권역", recommendReason: "주차와 휴식 시설이 쾌적한 대형 호텔·리조트가 밀집해 있으며, 보문호수 아침 산책과 불국사·감포 이동에 최적화된 거점입니다.", recommendTypes: "5성급 호텔, 레이크뷰 리조트, 키즈/가족 풀빌라", strategy: "🏨 <b>보문단지 숙소 맞춤 동선:</b> 1일차에 황리단길과 시내 야경을 모두 감상한 뒤 보문 숙소로 입실하고, 2일차 아침 보문호수 산책과 불국사로 이어집니다." },
+        { id: "bulguksa", label: "불국사 · 감포 바닷가 권역 (동경주 오션뷰/펜션)", shortZone: "불국사/감포해안 권역", recommendReason: "불국사·문무대왕릉·감포 주상절리 동해안 일출을 여유롭게 즐기기 좋은 한적한 휴양 권역입니다.", recommendTypes: "오션뷰 풀빌라, 한옥 호텔, 산사 인근 힐링 펜션", strategy: "🌲 <b>불국사·감포 숙소 맞춤 동선:</b> 시내권 코스를 먼저 둘러본 뒤 동경주 숙소로 이동해 휴식하고, 다음 날 아침 불국사와 감포 해안도로 코스를 일주합니다." }
+      ],
+      "진주시": [
+        { id: "jinju_castle", label: "진주성 · 남강 · 중앙동/대안동 권역 (도보/야경 중심)", shortZone: "진주성/남강 시내권", recommendReason: "진주성 촉석루와 남강 유등 야경, 중앙시장을 모두 도보로 즐길 수 있는 중심 권역입니다.", recommendTypes: "남강 리버뷰 호텔, 진주성 인근 감성 스테이, 부티크 호텔", strategy: "🏯 <b>진주성·남강 숙소 맞춤 동선:</b> 낮에는 진양호나 월아산 등 외곽 코스를 먼저 둘러보고, 저녁 무렵 시내 숙소에 체크인한 뒤 도보로 진주성 야경 산책을 즐깁니다." },
+        { id: "jinju_innov", label: "충무공동 진주혁신도시 · 진주역 권역 (신도시 호텔/가족)", shortZone: "충무공동/진주역 권역", recommendReason: "KTX 진주역 및 IC 접근성이 뛰어나고, 주차가 넓고 쾌적한 신축 호텔이 잘 갖춰진 권역입니다.", recommendTypes: "신축 비즈니스/시티 호텔, 가족형 레지던스", strategy: "🚄 <b>진주혁신도시·진주역 숙소 맞춤 동선:</b> 1일차에 진주성·남강 중심가와 야경을 관람한 뒤 숙소로 이동해 휴식하고, 2일차 아침 동부권(월아산·수목원)으로 이어집니다." },
+        { id: "jinju_lake", label: "평거동 · 진양호 공원 수변 권역 (호수뷰/카페거리)", shortZone: "평거동/진양호 권역", recommendReason: "진양호 노을 전망대와 평거동 남강 변 맛집·카페거리가 인접해 있어 여유로운 산책과 미식을 즐기기 좋습니다.", recommendTypes: "진양호 인근 호텔/펜션, 평거동 수변 스테이", strategy: "🌅 <b>평거동·진양호 숙소 맞춤 동선:</b> 시내 역사 코스를 둘러본 뒤 일몰 시간에 맞춰 진양호 전망대 노을을 감상하고 평거동 카페·미식 거리에서 저녁을 보냅니다." }
+      ],
+      "제주도": [
+        { id: "west_aewol", label: "제주 서쪽 (애월 · 한림 · 협재 해안권)", shortZone: "제주 서쪽(애월/협재)", recommendReason: "공항에서 해안도로를 따라 이동하기 좋고, 에메랄드빛 협재 해변과 신창풍차 일몰, 오션뷰 카페가 밀집한 인기 권역입니다.", recommendTypes: "애월 오션뷰 호텔, 협재 독채 돌집, 감성 스테이", strategy: "🌊 <b>서쪽(애월·협재) 숙소 거점:</b> 애월·협재 해안과 새별오름 일몰을 보고 숙소에 체크인하며, 다음 날 남쪽(서귀포/중문) 코스로 이동합니다." },
+        { id: "south_seogwipo", label: "제주 남쪽 (서귀포 · 중문관광단지 · 안덕)", shortZone: "제주 남쪽(서귀포/중문)", recommendReason: "사계절 온화한 기후와 카멜리아힐·중문 해안·서귀포 매일올레시장 야시장 접근성이 뛰어난 남부 핵심 권역입니다.", recommendTypes: "중문 특급 리조트/호텔, 서귀포 오션뷰 호텔, 온수풀 빌라", strategy: "🍊 <b>남쪽(서귀포·중문) 숙소 거점:</b> 카멜리아힐과 중문 주상절리 노을을 보고 서귀포 올레시장 또는 중문 숙소에서 여유롭게 저녁을 즐깁니다." },
+        { id: "east_seongsan", label: "제주 동쪽 (성산 · 표선 · 구좌 · 함덕)", shortZone: "제주 동쪽(성산/구좌)", recommendReason: "성산일출봉 아침 산책과 섭지코지, 비자림 숲길, 구좌읍 해안 카페 투어를 즐긴 뒤 공항으로 복귀하기 좋은 거점입니다.", recommendTypes: "성산 일출뷰 호텔, 구좌읍 감성 숙소, 표선 리조트", strategy: "🌅 <b>동쪽(성산·구좌) 숙소 거점:</b> 성산일출봉과 비자림 숲길을 묶어 동선을 최소화하고, 구좌·함덕 해안을 거쳐 공항으로 이동합니다." }
+      ]
+    };
+
+    function getHotelZonesForCity(cityName) {
+      if (cityName.includes("경주")) return SPECIFIC_HOTEL_ZONES["경주시"];
+      if (cityName.includes("진주")) return SPECIFIC_HOTEL_ZONES["진주시"];
+      if (cityName.includes("제주") || cityName.includes("서귀포")) return SPECIFIC_HOTEL_ZONES["제주도"];
+
+      const shortName = cityName.replace(/시|군|광역시/g, "");
+      return [
+        { id: "center", label: `${shortName} 시내 중심가 · 역/터미널 · 야경 도보 권역`, shortZone: `${shortName} 중심가/도보권역`, recommendReason: `${cityName} 대표 야경 명소와 로컬 맛집 거리가 인접해 저녁 식사 후 도보 귀가가 가능하며, 다음 날 아침 출발이 편리합니다.`, recommendTypes: `${shortName} 시내 부티크 호텔, 감성 한옥/독채 스테이`, strategy: `🚶 <b>${shortName} 중심가 숙소 맞춤 동선:</b> 낮에는 이동이 필요한 외곽 자연·전망 명소를 먼저 둘러보고, 저녁 무렵 중심가 숙소에 체크인하여 야간 산책을 즐깁니다.` },
+        { id: "resort", label: `${shortName} 주요 관광단지 · 해안/호수 뷰포인트 권역`, shortZone: `${shortName} 관광단지/뷰권역`, recommendReason: `${cityName}의 탁 트인 수변 풍경을 객실에서 감상하며 휴식할 수 있고, 아침 산책로 접근성이 뛰어난 대표 휴양 권역입니다.`, recommendTypes: `${shortName} 오션뷰/레이크뷰 리조트, 관광단지 호텔`, strategy: `🌅 <b>${shortName} 관광단지·뷰 숙소 맞춤 동선:</b> 1일차에 시내 중심가 미식과 역사 명소를 먼저 둘러본 뒤 일몰 시간에 맞춰 뷰포인트 숙소로 입실합니다.` }
+      ];
+    }
+
+    const CITY_SPOTS_POOL = {
+      "경주시": [
+        { id: "gj_hn_morning", zoneGroup: "hwangnam", slot: "morning", stayMin: 75, tags: ["sightseeing", "healing", "trendy"], name: "대릉원 천마총 & 미추왕릉 고분군 산책", category: "명소", zone: "황남동(시내권)", indoor: false, transitFriendly: true, parkingTip: "대릉원 공영주차장", breakTime: null, closedMon: false, desc: "아침 햇살이 비치는 고분군 소나무숲과 돌담길 대표 포토존", planB: { name: "천마총 실내 고분전시관 & 플레이스씨 갤러리", desc: "실내에서 고분 유물을 관람하고 한옥 갤러리 카페에서 휴식" }, travelMin: 10 },
+        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, tags: ["foodie", "trendy"], name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, transitFriendly: true, parkingTip: "황남공영주차장", breakTime: "15:00~17:00", closedMon: false, desc: "황리단길 중심가 대표 로컬 미식 (브레이크타임 15~17시 주의)", resInfo: { required: true, badge: "🍽️ 캐치테이블·네이버 원격줄서기 필수", btnLabel: "🍽️ 식당 예약·웨이팅 ↗", querySuffix: "황리단길 육회비빔밥 캐치테이블 예약" }, travelMin: 10 },
+        { id: "gj_hn_afternoon", zoneGroup: "hwangnam", slot: "afternoon", stayMin: 85, tags: ["sightseeing", "healing"], name: "교촌한옥마을 & 국립경주박물관", category: "명소", zone: "교동/인왕동(시내권)", indoor: true, transitFriendly: true, parkingTip: "박물관 무료주차장", breakTime: null, closedMon: true, desc: "최부자댁 고택 골목과 신라 금관·성덕대왕신종 관람", resInfo: { required: true, badge: "🎟️ 특별전·어린이박물관 사전예약", btnLabel: "🎟️ 박물관 관람예약 ↗", querySuffix: "국립경주박물관 사전예약" }, travelMin: 12 },
+        { id: "gj_hn_cafe", zoneGroup: "hwangnam", slot: "cafe", stayMin: 60, tags: ["trendy", "healing"], name: "황리단길 기와 루프탑 한옥카페 & 소품샵 거리", category: "카페", zone: "황남동(시내권)", indoor: true, transitFriendly: true, parkingTip: "인근 공영주차장", breakTime: null, closedMon: false, desc: "한옥 기와지붕 능선이 내려다보이는 카페와 감성 소품샵 투어", travelMin: 10 },
+        { id: "gj_hn_sunset", zoneGroup: "hwangnam", slot: "sunset", stayMin: 65, tags: ["trendy", "sightseeing", "healing"], name: "첨성대 핑크뮬리 꽃단지 & 월정교 강변 일몰", category: "일몰명소", zone: "교동(시내권)", indoor: false, transitFriendly: true, parkingTip: "쪽샘 임시주차장", breakTime: null, closedMon: false, desc: "일몰 골든아워에 맞춰 걷는 첨성대 산책로와 월정교 누각", planB: { name: "국립경주박물관 신라미술관 & 월지관", desc: "비 예보 시 실내에서 천년 신라의 예술품을 감상하는 코스" }, travelMin: 10 },
+        { id: "gj_hn_night", zoneGroup: "hwangnam", slot: "night", stayMin: 70, tags: ["trendy", "sightseeing", "foodie"], name: "동궁과 월지 (안압지 야경 산책)", category: "야경", zone: "인왕동(시내권)", indoor: false, transitFriendly: true, parkingTip: "동궁과월지 전용주차장", breakTime: null, closedMon: false, desc: "연못 위로 비치는 신라 왕궁의 환상적인 야간 조명", resInfo: { required: true, badge: "🎟️ 야간 모바일 입장권 사전예매 가능", btnLabel: "🎟️ 모바일 입장권 예매 ↗", querySuffix: "동궁과월지 입장권 예매" }, planB: { name: "황리단길 한옥 전통주 바 & 심야 다이닝", desc: "빗소리를 들으며 경주 법주와 페어링 안주를 즐기는 실내 바" }, travelMin: 12 },
+        { id: "gj_bm_morning", zoneGroup: "bomun", slot: "morning", stayMin: 70, tags: ["healing", "trendy"], name: "보문호수 수변산책로 & 황룡원 중도타워", category: "명소", zone: "보문단지권", indoor: false, transitFriendly: true, parkingTip: "황룡원 앞 공영주차장", breakTime: null, closedMon: false, desc: "호수 물안개와 9층 목탑 건축미가 어우러진 산책 코스", planB: { name: "우양미술관 (보문단지 현대미술관)", desc: "보문호수 인근에서 쾌적하게 관람하는 대형 실내 미술관" }, travelMin: 15 },
+        { id: "gj_bm_lunch", zoneGroup: "bomun", slot: "lunch", stayMin: 70, tags: ["foodie", "healing"], name: "보문단지 경주 한우 떡갈비 & 맷돌순두부 정식", category: "식당", zone: "보문단지권", indoor: true, transitFriendly: true, parkingTip: "매장 대형주차장", breakTime: "15:00~17:00", closedMon: false, desc: "보문단지 초입 주차가 편리한 향토 한정식 (BT 15~17시)", resInfo: { required: true, badge: "🍽️ 네이버 예약·단체석 예약 가능", btnLabel: "🍽️ 식당 사전예약 ↗", querySuffix: "경주 보문단지 떡갈비 순두부 예약" }, travelMin: 15 },
+        { id: "gj_bg_afternoon", zoneGroup: "bulguksa", slot: "afternoon", stayMin: 80, tags: ["sightseeing", "healing"], name: "불국사 & 다보탑·석가탑 단풍 숲길", category: "명소", zone: "불국사권", indoor: false, transitFriendly: true, parkingTip: "불국사 공영주차장", breakTime: null, closedMon: false, desc: "유네스코 세계유산 불국사 경내와 토함산 단풍 산책로", planB: { name: "경주세계문화엑스포 솔거미술관 & 실내식물원", desc: "아창지 통창 뷰 미술관과 사계절 실내 유리온실" }, travelMin: 18 },
+        { id: "gj_bm_cafe", zoneGroup: "bomun", slot: "cafe", stayMin: 60, tags: ["healing", "trendy", "foodie"], name: "보문호수 파노라마 통창 베이커리 카페", category: "카페", zone: "보문단지권", indoor: true, transitFriendly: true, parkingTip: "전용주차장 완비", breakTime: null, closedMon: false, desc: "호수 윤슬을 바라보며 마시는 스페셜티 티 & 베이커리", travelMin: 15 }
+      ]
+    };
+
+    function getCandidatePool(cityName) {
+      if (cityName.includes("경주") && CITY_SPOTS_POOL["경주시"]) return JSON.parse(JSON.stringify(CITY_SPOTS_POOL["경주시"]));
+      const shortName = cityName.replace(/시|군|광역시/g, "");
+      const zones = getHotelZonesForCity(cityName);
+      const zCenter = zones[0].id;
+      const zResort = (zones[1] || zones[0]).id;
+
+      return [
+        { id: "g1", zoneGroup: zCenter, slot: "morning", stayMin: 75, tags: ["sightseeing", "healing"], name: `${shortName} 대표 역사읍성 · 고택 산책로`, category: "명소", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "공영주차장 이용", breakTime: null, closedMon: false, desc: `오전에 둘러보기 좋은 ${cityName}의 상징적인 역사 산책 코스`, planB: { name: `${shortName} 국립·시립박물관`, desc: `실내에서 지역의 역사와 문화를 관람하는 코스` }, travelMin: 12 },
+        { id: "g2", zoneGroup: zCenter, slot: "lunch", stayMin: 70, tags: ["foodie"], name: `${shortName} 중심가 대표 향토 한정식 & 로컬 미식`, category: "식당", zone: `${shortName} 중심권`, indoor: true, transitFriendly: true, parkingTip: "인근 공영주차장", breakTime: "15:00~17:00", closedMon: false, desc: `${cityName} 현지인들이 찾는 대표 로컬 맛집 (브레이크타임 15~17시 주의)`, resInfo: { required: true, badge: "🍽️ 네이버 예약·스마트웨이팅 가능", btnLabel: "🍽️ 식당 예약·웨이팅 ↗", querySuffix: "맛집 네이버예약" }, travelMin: 12 },
+        { id: "g3", zoneGroup: zCenter, slot: "afternoon", stayMin: 75, tags: ["trendy", "sightseeing"], name: `${shortName} 감성 골목 & 문화전시관 투어`, category: "명소", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "문화거리 주차장", breakTime: null, closedMon: false, desc: `독립서점과 로컬 소품샵, 전시관이 어우러진 도보 여행지`, planB: { name: `${shortName} 시립미술관 & 복합문화공간`, desc: `비 예보 시 쾌적하게 즐기는 실내 전시관` }, travelMin: 10 },
+        { id: "g4", zoneGroup: zCenter, slot: "cafe", stayMin: 60, tags: ["trendy", "healing", "foodie"], name: `${shortName} 파노라마 루프탑 로스터리 카페`, category: "카페", zone: `${shortName} 중심권`, indoor: true, transitFriendly: true, parkingTip: "카페 전용주차장", breakTime: null, closedMon: false, desc: `${shortName} 시내와 자연 풍경이 한눈에 들어오는 시그니처 디저트 카페`, travelMin: 12 },
+        { id: "g5", zoneGroup: zCenter, slot: "sunset", stayMin: 60, tags: ["healing", "trendy"], name: `${shortName} 강변·해안 노을 전망대`, category: "일몰명소", zone: `${shortName} 전망권역`, indoor: false, transitFriendly: true, parkingTip: "수변공원 주차장", breakTime: null, closedMon: false, desc: `일몰 골든아워에 맞춰 붉게 물드는 하늘을 감상하는 뷰포인트`, travelMin: 15 },
+        { id: "g6", zoneGroup: zCenter, slot: "night", stayMin: 70, tags: ["trendy", "foodie", "sightseeing"], name: `${shortName} 야간 경관조명교 & 중앙 야시장`, category: "야경", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "중앙시장 공영주차장", breakTime: null, closedMon: false, desc: `화려한 야간 조명 산책과 로컬 야시장 먹거리 투어`, travelMin: 12 },
+        { id: "g7", zoneGroup: zResort, slot: "morning", stayMin: 75, tags: ["healing"], name: `${shortName} 수변공원 데크길 & 자연휴양림`, category: "명소", zone: `${shortName} 휴양권역`, indoor: false, transitFriendly: true, parkingTip: "휴양림 주차장", breakTime: null, closedMon: false, desc: `아침 피톤치드를 마시며 걷는 ${cityName} 대표 숲·수변 산책로`, travelMin: 18 },
+        { id: "g8", zoneGroup: zResort, slot: "lunch", stayMin: 70, tags: ["foodie"], name: `${shortName} 바닷가·호수뷰 로컬 별미 한상`, category: "식당", zone: `${shortName} 휴양권역`, indoor: true, transitFriendly: true, parkingTip: "매장 대형주차장", breakTime: "15:00~17:00", closedMon: false, desc: `탁 트인 자연 풍경과 함께 즐기는 점심 특선`, resInfo: { required: true, badge: "🍽️ 창가석 사전예약 권장", btnLabel: "🍽️ 식당 사전예약 ↗", querySuffix: "맛집 예약" }, travelMin: 15 },
+        { id: "g9", zoneGroup: zResort, slot: "afternoon", stayMin: 80, tags: ["sightseeing", "trendy"], name: `${shortName} 케이블카 & 스카이워크 전망대`, category: "명소", zone: `${shortName} 휴양권역`, indoor: false, transitFriendly: true, parkingTip: "케이블카 주차장", breakTime: null, closedMon: false, desc: `${cityName}의 산세와 물길을 발아래로 조망하는 랜드마크 코스`, resInfo: { required: true, badge: "🎟️ 케이블카·전망대 온라인 사전예매", btnLabel: "🎟️ 탑승권 예매 ↗", querySuffix: "케이블카 네이버예약" }, travelMin: 15 },
+        { id: "g10", zoneGroup: zResort, slot: "cafe", stayMin: 60, tags: ["healing", "trendy"], name: `${shortName} 수변 통창 베이커리 & 티하우스`, category: "카페", zone: `${shortName} 휴양권역`, indoor: true, transitFriendly: false, parkingTip: "전용 주차장 완비", breakTime: null, closedMon: false, desc: `물결치는 윤슬을 바라보며 여유롭게 쉬어가는 대형 카페`, travelMin: 15 }
+      ];
+    }
+
+    // 앱 전역 상태 (Netlify 서버리스 모드 기본 적용)
+    let state = {
+      mode: 'planned',
+      timeFormat: '24h',
+      geminiApiKey: 'SERVERLESS_MODE',
+      geminiModel: 'gemini-2.5-flash',
+      isLiveGenerated: false,
+      groundingSources: [],
+      liveSwapPool: [],
+      unplanned: { season: 'autumn', vibe: 'ocean', transport: 'car', days: 2 },
+      selectedCityName: '경주시',
+      selectedCityProv: '경북',
+      currentSeason: 'autumn',
+      startDate: '2026-10-17',
+      endDate: '2026-10-18',
+      tripDays: 2,
+      plannedCompanion: 'undecided',
+      plannedPurpose: 'undecided',
+      plannedTransport: 'car',
+      stayMode: 'single',
+      hotel1Zone: 'hwangnam',
+      hotel1Name: '',
+      hotel2Zone: 'bomun',
+      hotel2Name: '',
+      arrivalHour: 12,
+      density: 4,
+      pinnedSpotId: 'none',
+      rainMode: false,
+      activeDay: 1,
+      daysData: {},
+      alerts: [],
+      routeExplanation: "",
+      swapTargetIndex: null,
+      swapFilterCat: 'all',
+      editingSpotIndex: null
+    };
+
+    const SEASON_META = {
+      spring: { label: "🌸 봄 시즌", sunset: "18:35", badgeClass: "bg-pink-100 text-pink-700" },
+      summer: { label: "🌊 여름 시즌", sunset: "19:40", badgeClass: "bg-sky-100 text-sky-700" },
+      autumn: { label: "🍁 가을 시즌", sunset: "17:48", badgeClass: "bg-amber-100 text-amber-800" },
+      winter: { label: "❄️ 겨울 시즌", sunset: "17:25", badgeClass: "bg-sky-100 text-indigo-800" }
+    };
+
+    window.onload = () => {
+      selectCityByName("경주시", "경북");
+      setDurationDays(2);
+      document.getElementById('plan-arrival').value = "12";
+      state.arrivalHour = 12;
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#city-search-input') && !e.target.closest('#city-autocomplete')) {
+          document.getElementById('city-autocomplete').classList.add('hidden');
+        }
+      });
+    };
+
+    // JSON 응답 안전 추출기
+    function extractJSONFromText(rawText) {
+      if (!rawText) throw new Error("빈 응답입니다.");
+      let cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
+      return JSON.parse(cleaned);
+    }
+
+    // [핵심] Netlify 서버리스 함수(/.netlify/functions/gemini)를 호출하여 실시간 신상 여행 일정 생성!
+    async function fetchLiveItineraryWithGemini() {
+      const overlay = document.getElementById('live-loading-overlay');
+      const stepEl = document.getElementById('loading-step');
+      const barEl = document.getElementById('loading-bar');
+      overlay.classList.remove('hidden');
+      barEl.style.width = "25%";
+
+      const trendPref = document.getElementById('search-trend-pref').value;
+      const trendInstruction = trendPref === 'new_hot'
+        ? "특히 최근(2025~2026년)에 새로 오픈했거나 요즘 SNS·네이버지도에서 가장 핫한 신상 맛집, 신상 카페, 팝업·전시를 적극적으로 검색해서 포함시켜 주세요."
+        : (trendPref === 'local_authentic'
+            ? "현지인들이 인정하는 진짜 로컬 맛집·노포와 핵심 명소를 중심으로 검색해 주세요."
+            : "새로 생긴 트렌디한 신상 맛집·카페와 꼭 가봐야 할 유명 랜드마크를 균형 있게 배합해 주세요.");
+
+      const zoneDefs = getHotelZonesForCity(state.selectedCityName);
+      const h1Def = zoneDefs.find(z => z.id === state.hotel1Zone) || zoneDefs[0];
+      const h2Def = zoneDefs.find(z => z.id === state.hotel2Zone) || zoneDefs[0];
+
+      const stayDesc = state.stayMode === 'recommend'
+        ? "숙소 미정 (각 일자 동선에 맞는 최적의 숙박 동네/권역을 추천해 줄 것)"
+        : (state.stayMode === 'single'
+            ? `예약 숙소 거점: ${h1Def.label} (${state.hotel1Name || h1Def.shortZone})`
+            : `1박차 숙소: ${h1Def.shortZone}, 2박차 이후 숙소: ${h2Def.shortZone}`);
+
+      const customPinText = document.getElementById('plan-pin-custom').value.trim();
+      const cMeta = COMPANION_META[state.plannedCompanion];
+      const pMeta = PURPOSE_META[state.plannedPurpose];
+
+      const stepTimer1 = setTimeout(() => {
+        stepEl.innerText = `🌐 Google 실시간 검색으로 [${state.selectedCityName}] 신상 맛집·카페 탐색 중...`;
+        barEl.style.width = "60%";
+      }, 2200);
+
+      const stepTimer2 = setTimeout(() => {
+        stepEl.innerText = `🧭 숙소 거점 동선 최적화 및 브레이크타임·예약 정보 매칭 중...`;
+        barEl.style.width = "88%";
+      }, 5000);
+
+      const prompt = `
+당신은 대한민국 최고 수준의 실시간 여행 동선 설계 전문가입니다.
+Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 실제 존재하는 최신 여행 일정을 설계해 주세요.
+
+[여행 조건]
+- 여행지: ${state.selectedCityName} (${state.selectedCityProv})
+- 여행 기간: ${state.startDate} ~ ${state.endDate} (총 ${state.tripDays}일, ${state.tripDays - 1}박)
+- 첫날 도착 시각: ${state.arrivalHour}:00 (1일차 첫 일정은 반드시 ${String(state.arrivalHour).padStart(2, '0')}:00에 시작할 것!)
+- 하루 희망 스팟 수(숙소 제외): 하루 ${state.density}곳 내외
+- 동행자: ${cMeta.label} / 여행 목적: ${pMeta.label}
+- 이동 수단: ${state.plannedTransport === 'car' ? '자차·렌터카' : '대중교통·도보'}
+- 숙소 조건: ${stayDesc}
+- 필수 포함 희망 장소: ${customPinText || '없음'}
+- 특별 지침: ${trendInstruction}
+
+[필수 준수 규칙]
+1. 절대로 식당 2곳이나 카페 2곳을 연속으로 배치하지 마세요! 하루 일정은 반드시 시간 흐름에 따라 [오전 명소(10시 도착 시)] -> [점심 식당(12:00)] -> [오후 명소/전시] -> [카페/디저트] -> [일몰 명소] -> [야경/저녁] 순서로 자연스럽게 이어져야 합니다.
+2. 모든 장소는 ${state.selectedCityName}에 실제로 존재하는 상호명/명소명이어야 합니다. 새로 생긴 신상 카페나 맛집이라면 isNewHot을 true로 설정하고, 설명(desc)에 어떤 메뉴나 뷰로 유명한지 구체적으로 적어주세요.
+3. 우천 시 대체할 수 있는 실제 실내 장소(planB)와 주차 팁(parkingTip), 식당 브레이크타임(breakTime, 예: "15:00~17:00" 또는 없으면 null)을 포함하세요.
+4. 출력은 마크다운 설명 없이 오직 아래 JSON 스키마 형식으로만 응답하세요.
+
+{
+  "routeSummary": "전체 동선 및 숙소·신상 핫플 구성 핵심 요약 (2문장)",
+  "days": {
+    "1": [
+      {
+        "time": "12:00",
+        "stayMin": 70,
+        "name": "실제 매장 또는 명소 이름",
+        "category": "식당 | 명소 | 카페 | 일몰명소 | 야경",
+        "zone": "구체적인 동/읍/면 이름",
+        "indoor": true,
+        "isNewHot": true,
+        "breakTime": "15:00~17:00",
+        "parkingTip": "전용주차장 또는 인근 공영주차장 이름",
+        "travelMin": 15,
+        "desc": "대표 메뉴, 특징, 최근 오픈/인기 포인트 등 구체적 설명",
+        "planB": {
+          "name": "우천 시 대체할 인근 실제 실내 명소/복합문화공간 이름",
+          "desc": "실내 대안 장소 설명"
+        }
+      }
+    ]
+  },
+  "recommendedHotels": [
+    {
+      "night": 1,
+      "shortZone": "추천 숙박 동네/권역명",
+      "recommendTypes": "추천 숙소 형태 (예: 감성 한옥스테이, 오션뷰 호텔 등)",
+      "reason": "이 동네에서 자야 동선상 유리한 이유"
+    }
+  ]
+}
+`;
+
+      try {
+        // Netlify 서버리스 함수 호출 (API 키는 서버 환경변수에서 자동 주입됨)
+        const response = await fetch('/.netlify/functions/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            model: state.geminiModel,
+            temperature: 0.4
+          })
+        });
+
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `서버 응답 오류 (${response.status})`);
+        }
+
+        const data = await response.json();
+        const candidate = data?.candidates?.[0];
+        const rawText = (candidate?.content?.parts || []).map(p => p.text || "").join("\n");
+        const parsed = extractJSONFromText(rawText);
+
+        const chunks = candidate?.groundingMetadata?.groundingChunks || [];
+        state.groundingSources = chunks
+          .filter(c => c.web && c.web.uri)
+          .map(c => ({ title: c.web.title || "웹 검색 출처", uri: c.web.uri }))
+          .slice(0, 5);
+
+        let newDaysData = { 1: [], 2: [], 3: [], 4: [] };
+        for (let d = 1; d <= state.tripDays; d++) {
+          const dayArr = parsed?.days?.[String(d)] || parsed?.days?.[d] || [];
+          newDaysData[d] = dayArr.map((item, idx) => ({
+            id: `live_d${d}_${idx}_${Date.now()}`,
+            time: item.time || "14:00",
+            stayMin: Number(item.stayMin) || 70,
+            name: item.name || "추천 장소",
+            category: item.category || "명소",
+            zone: item.zone || state.selectedCityName,
+            indoor: Boolean(item.indoor),
+            isLiveSpot: true,
+            isNewHot: Boolean(item.isNewHot),
+            breakTime: item.breakTime && item.breakTime !== "null" ? item.breakTime : null,
+            parkingTip: item.parkingTip || "",
+            travelMin: Number(item.travelMin) || 15,
+            desc: item.desc || "",
+            planB: item.planB && item.planB.name ? item.planB : null
+          }));
+        }
+
+        state.daysData = newDaysData;
+        state.isLiveGenerated = true;
+
+        for (let d = 1; d < state.tripDays; d++) {
+          if (state.stayMode === 'recommend') {
+            const aiRec = (parsed.recommendedHotels || []).find(h => Number(h.night) === d) || {};
+            const fallbackZone = zoneDefs[(d - 1) % zoneDefs.length];
+            const zoneTitle = aiRec.shortZone || fallbackZone.shortZone;
+
+            state.daysData[d].push({
+              id: `rec_hotel_night_${d}`,
+              time: "20:30",
+              stayMin: 60,
+              isHotelNode: true,
+              isRecommendHotel: true,
+              manualTimeLocked: false,
+              name: `💡 ${d}박차 추천 숙박 위치: [${zoneTitle}]`,
+              category: "예약숙소",
+              zone: zoneTitle,
+              indoor: true,
+              recommendTypes: aiRec.recommendTypes || fallbackZone.recommendTypes,
+              desc: aiRec.reason || fallbackZone.recommendReason,
+              searchQuery: `${state.selectedCityName} ${zoneTitle} 숙소`,
+              travelMin: 12
+            });
+          } else {
+            const zId = (d === 1 || state.stayMode === 'single') ? state.hotel1Zone : state.hotel2Zone;
+            const zDef = zoneDefs.find(z => z.id === zId) || zoneDefs[0];
+            const customName = (d === 1 || state.stayMode === 'single')
+              ? (state.hotel1Name || `${state.selectedCityName} ${zDef.shortZone} 숙소`)
+              : (state.hotel2Name || `${state.selectedCityName} ${zDef.shortZone} 숙소`);
+
+            state.daysData[d].push({
+              id: `booked_hotel_night_${d}`,
+              time: "20:30",
+              stayMin: 60,
+              isHotelNode: true,
+              isRecommendHotel: false,
+              manualTimeLocked: false,
+              name: `🏨 ${customName} 체크인 & 휴식`,
+              category: "예약숙소",
+              zone: zDef.shortZone,
+              indoor: true,
+              desc: `실시간 검색된 마지막 코스를 마친 뒤 이동 시간 반영 체크인 시각입니다.`,
+              searchQuery: `${state.selectedCityName} ${customName}`,
+              travelMin: 12
+            });
+          }
+          recalculateHotelCheckinTime(d);
+        }
+
+        state.routeExplanation = `🌐 <b>[AI 실시간 구글 검색 반영 완료]</b> ${parsed.routeSummary || `${state.selectedCityName}의 최신 오픈 맛집·카페와 핵심 명소를 실시간으로 검색해 구성했습니다.`}`;
+        state.activeDay = 1;
+
+        overlay.classList.add('hidden');
+        document.getElementById('view-unplanned').classList.add('hidden');
+        document.getElementById('view-planned').classList.add('hidden');
+        document.getElementById('view-itinerary').classList.remove('hidden');
+
+        renderItineraryView();
+        showToast(`🌐 실시간 웹 검색을 통해 [${state.selectedCityName}] 최신 핫플 일정이 생성되었습니다!`);
+      } catch (err) {
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
+        overlay.classList.add('hidden');
+        console.warn("서버리스 호출 폴백:", err.message);
+        showToast(`💡 로컬 환경이거나 서버 연결 전이어서 내장 검증 DB로 일정을 먼저 생성합니다.`);
+        buildSlotVerifiedItinerary();
+      }
+    }
+
+    // 교체 모달 내 실시간 AI 신상 후보 검색 (서버리스 함수 연동)
+    async function searchLiveCandidatesForSwap() {
+      const currentSpot = state.daysData[state.activeDay][state.swapTargetIndex];
+      const btn = document.getElementById('btn-live-swap-search');
+      const originalText = btn.innerText;
+      btn.disabled = true;
+      btn.innerText = "🔍 웹 검색 중...";
+
+      const targetCat = state.swapFilterCat === 'all' ? currentSpot.category : state.swapFilterCat;
+
+      const prompt = `
+Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot.zone || ''}] 인근에서 [${currentSpot.name}] 대신 방문하기 좋은 실제 최신/신상 [${targetCat}] 후보 4곳을 추천해 주세요.
+특히 최근 새로 생겼거나 현지에서 평점이 높은 곳으로 선정하고, 아래 JSON 형식으로만 응답하세요.
+{
+  "candidates": [
+    {
+      "name": "실제 상호명",
+      "category": "${targetCat}",
+      "zone": "구체적 동/읍/면",
+      "stayMin": 70,
+      "isNewHot": true,
+      "indoor": true,
+      "breakTime": "15:00~17:00 또는 null",
+      "desc": "대표 메뉴 및 신상/인기 포인트 1줄 설명"
+    }
+  ]
+}
+`;
+
+      try {
+        const response = await fetch('/.netlify/functions/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            model: state.geminiModel,
+            temperature: 0.5
+          })
+        });
+
+        if (!response.ok) throw new Error("서버리스 응답 실패");
+
+        const data = await response.json();
+        const rawText = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("\n");
+        const parsed = extractJSONFromText(rawText);
+
+        const newCandidates = (parsed.candidates || []).map((c, i) => ({
+          id: `live_swap_${Date.now()}_${i}`,
+          name: c.name,
+          category: c.category || targetCat,
+          zone: c.zone || state.selectedCityName,
+          stayMin: Number(c.stayMin) || 65,
+          isLiveSpot: true,
+          isNewHot: true,
+          indoor: c.indoor !== false,
+          breakTime: c.breakTime && c.breakTime !== "null" ? c.breakTime : null,
+          desc: c.desc || "실시간 검색으로 찾은 추천 장소",
+          travelMin: 15
+        }));
+
+        state.liveSwapPool = [...newCandidates, ...state.liveSwapPool];
+        filterSwapCandidates(state.swapFilterCat);
+        showToast(`🌐 [${state.selectedCityName}] 실시간 신상 ${targetCat} 후보 ${newCandidates.length}곳을 불러왔습니다!`);
+      } catch (e) {
+        showToast(`⚠️ Netlify 배포 완료 후 실시간 후보 검색이 활성화됩니다.`);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+      }
+    }
+
+    function triggerLiveRegenerate() {
+      fetchLiveItineraryWithGemini();
+    }
+
+    // ==================== [UI 컨트롤 및 내장 폴백 빌더] ====================
+
+    function setTimeFormat(fmt) {
+      state.timeFormat = fmt;
+      const btn24 = document.getElementById('btn-fmt-24');
+      const btn12 = document.getElementById('btn-fmt-12');
+      if (fmt === '24h') {
+        btn24.className = "px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white transition";
+        btn12.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition";
+      } else {
+        btn12.className = "px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white transition";
+        btn24.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition";
+      }
+      renderItineraryView();
+    }
+
+    function setPlannedCompanion(compKey, btn) {
+      state.plannedCompanion = compKey;
+      document.querySelectorAll('.chip-p-comp').forEach(b => {
+        b.className = "chip-p-comp py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition";
+      });
+      btn.className = "chip-p-comp py-2 px-1 rounded-xl text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition";
+      updateCompanionPurposeHint();
+    }
+
+    function setPlannedPurpose(purpKey, btn) {
+      state.plannedPurpose = purpKey;
+      document.querySelectorAll('.chip-p-purp').forEach(b => {
+        const spanClass = b.classList.contains('col-span-2') ? ' col-span-2' : '';
+        b.className = `chip-p-purp py-2 px-2 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition${spanClass}`;
+      });
+      const isSpan2 = btn.classList.contains('col-span-2') ? ' col-span-2' : '';
+      btn.className = `chip-p-purp py-2 px-2 rounded-xl text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition${isSpan2}`;
+      updateCompanionPurposeHint();
+    }
+
+    function updateCompanionPurposeHint() {
+      const cMeta = COMPANION_META[state.plannedCompanion];
+      const pMeta = PURPOSE_META[state.plannedPurpose];
+      document.getElementById('companion-purpose-hint').innerHTML =
+        `💡 <b>현재 설정: [${cMeta.label}] · [${pMeta.label}]</b><br>• <b>동행 반영:</b> ${cMeta.tipPrefix}<br>• <b>목적 반영:</b> ${pMeta.desc}`;
+    }
+
+    function setPlannedTransport(type) {
+      state.plannedTransport = type;
+      const btnCar = document.getElementById('btn-trans-car');
+      const btnTransit = document.getElementById('btn-trans-transit');
+      const hint = document.getElementById('transport-hint');
+
+      if (type === 'car') {
+        btnCar.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 border-indigo-600 bg-indigo-50 text-indigo-700 transition flex items-center justify-center gap-1.5";
+        btnTransit.className = "py-2.5 px-3 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:border-slate-300 transition flex items-center justify-center gap-1.5";
+        hint.innerHTML = `🚗 <b>자차·렌터카 모드:</b> 낮에는 주차가 편한 외곽 명소를 돌고, 저녁에 숙소 권역으로 들어오는 동선을 구성합니다.`;
+      } else {
+        btnTransit.className = "py-2.5 px-3 rounded-xl text-xs font-bold border-2 border-indigo-600 bg-indigo-50 text-indigo-700 transition flex items-center justify-center gap-1.5";
+        btnCar.className = "py-2.5 px-3 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:border-slate-300 transition flex items-center justify-center gap-1.5";
+        hint.innerHTML = `🚌 <b>대중교통·도보 모드:</b> 자차 없이 가기 힘든 외곽 스팟을 줄이고, 버스·도보 이동 시간(1.4배)을 반영해 체크인 시각을 계산합니다.`;
+      }
+      updateHotelPreviewHint();
+    }
+
+    function setDurationDays(daysCount) {
+      state.tripDays = daysCount;
+      const startStr = document.getElementById('plan-start').value || '2026-10-17';
+      const sDate = parseLocalDate(startStr);
+      const eDate = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + (daysCount - 1));
+      document.getElementById('plan-end').value = formatLocalDate(eDate);
+      updateDurationUI(daysCount);
+    }
+
+    function onStartDateInput() {
+      const sVal = document.getElementById('plan-start').value;
+      if (!sVal) return;
+      const sDate = parseLocalDate(sVal);
+      const eDate = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + (state.tripDays - 1));
+      document.getElementById('plan-end').value = formatLocalDate(eDate);
+      updateDurationUI(state.tripDays);
+    }
+
+    function onEndDateInput() {
+      const sVal = document.getElementById('plan-start').value;
+      const eVal = document.getElementById('plan-end').value;
+      if (!sVal || !eVal) return;
+      const sDate = parseLocalDate(sVal);
+      const eDate = parseLocalDate(eVal);
+      let diffDays = Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
+
+      if (diffDays < 2) {
+        diffDays = 2;
+        const fixedEnd = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + 1);
+        document.getElementById('plan-end').value = formatLocalDate(fixedEnd);
+      } else if (diffDays > 4) {
+        diffDays = 4;
+        const fixedEnd = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + 3);
+        document.getElementById('plan-end').value = formatLocalDate(fixedEnd);
+      }
+      state.tripDays = diffDays;
+      updateDurationUI(diffDays);
+    }
+
+    function updateDurationUI(daysCount) {
+      const nights = daysCount - 1;
+      document.getElementById('duration-badge').innerText = `현재: ${nights}박 ${daysCount}일 (총 ${daysCount}일 일정)`;
+      [2, 3, 4].forEach(d => {
+        const btn = document.getElementById(`btn-dur-${d}`);
+        if (btn) {
+          btn.className = d === daysCount
+            ? "py-1.5 rounded-lg text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition"
+            : "py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition";
+        }
+      });
+    }
+
+    function onArrivalChange() {
+      state.arrivalHour = parseInt(document.getElementById('plan-arrival').value, 10);
+    }
+
+    function setStayMode(mode) {
+      state.stayMode = mode;
+      ['recommend', 'single', 'multi'].forEach(m => {
+        const btn = document.getElementById(`btn-stay-${m}`);
+        btn.className = m === mode
+          ? "py-2 px-1 text-[11px] font-bold rounded-lg bg-white text-indigo-600 shadow-sm transition leading-tight"
+          : "py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight";
+      });
+
+      const recBox = document.getElementById('hotel-recommend-box');
+      const inputContainer = document.getElementById('hotel-input-container');
+      const boxDay2 = document.getElementById('hotel-day2-box');
+      const label1 = document.getElementById('label-hotel-1');
+
+      if (mode === 'recommend') {
+        recBox.classList.remove('hidden');
+        inputContainer.classList.add('hidden');
+      } else if (mode === 'single') {
+        recBox.classList.add('hidden');
+        inputContainer.classList.remove('hidden');
+        boxDay2.classList.add('hidden');
+        label1.innerText = `📍 [${state.selectedCityName}] 예약한 숙소 권역 선택`;
+        updateHotelPreviewHint();
+      } else {
+        recBox.classList.add('hidden');
+        inputContainer.classList.remove('hidden');
+        boxDay2.classList.remove('hidden');
+        label1.innerText = `📍 [${state.selectedCityName}] 1박차 숙소 권역 선택`;
+        updateHotelPreviewHint();
+      }
+    }
+
+    function populateHotelZones(cityName) {
+      const zones = getHotelZonesForCity(cityName);
+      const select1 = document.getElementById('hotel-zone-1');
+      const select2 = document.getElementById('hotel-zone-2');
+      select1.innerHTML = "";
+      select2.innerHTML = "";
+
+      zones.forEach((z, idx) => {
+        select1.innerHTML += `<option value="${z.id}">${z.label}</option>`;
+        select2.innerHTML += `<option value="${z.id}" ${idx === 1 ? 'selected' : ''}>${z.label}</option>`;
+      });
+
+      document.getElementById('hotel-city-label').innerText = cityName;
+      document.getElementById('label-hotel-1').innerText = state.stayMode === 'multi'
+        ? `📍 [${cityName}] 1박차 숙소 권역 선택`
+        : `📍 [${cityName}] 예약한 숙소 권역 선택`;
+
+      const hInput1 = document.getElementById('hotel-name-1');
+      const hInput2 = document.getElementById('hotel-name-2');
+      hInput1.placeholder = `${cityName} 예약 숙소명 입력 (비워두면 권역명으로 표시)`;
+      hInput2.placeholder = `${cityName} 2박차 숙소명 입력`;
+      hInput1.value = "";
+      hInput2.value = "";
+    }
+
+    function updateHotelPreviewHint() {
+      const zones = getHotelZonesForCity(state.selectedCityName);
+      const z1Id = document.getElementById('hotel-zone-1').value;
+      const z2Id = document.getElementById('hotel-zone-2').value;
+      const z1Obj = zones.find(z => z.id === z1Id) || zones[0];
+      const z2Obj = zones.find(z => z.id === z2Id) || zones[0];
+
+      const hintBox = document.getElementById('hotel-strategy-hint');
+      if (state.stayMode === 'single') {
+        hintBox.innerHTML = z1Obj.strategy;
+      } else if (state.stayMode === 'multi') {
+        hintBox.innerHTML = `🚐 <b>${state.selectedCityName} 일자별 숙소 이동 동선:</b> 1박차는 <b>[${z1Obj.shortZone}]</b> 중심으로 코스를 돌고, 2일차부터는 <b>[${z2Obj.shortZone}]</b> 방면 스팟들로 자연스럽게 이동하며 체크인하도록 설계합니다.`;
+      }
+    }
+
+    function handleCitySearch(query) {
+      const q = query.trim();
+      const box = document.getElementById('city-autocomplete');
+      let matches = KOREA_REGIONS.filter(r => r.name.includes(q) || r.prov.includes(q) || r.desc.includes(q));
+      box.innerHTML = "";
+      box.classList.remove('hidden');
+
+      if (q.length >= 2) {
+        const exactOrPrefix = KOREA_REGIONS.find(r => r.name === q || r.name.startsWith(q));
+        if (exactOrPrefix && exactOrPrefix.name !== state.selectedCityName) {
+          applyCityChangeSilently(exactOrPrefix.name, exactOrPrefix.prov);
+        } else if (!exactOrPrefix) {
+          applyCityChangeSilently(q, "자유지역");
+        }
+      }
+
+      if (q.length > 0 && !matches.some(m => m.name === q)) {
+        const customBtn = document.createElement('button');
+        customBtn.className = "w-full text-left px-3.5 py-2.5 hover:bg-indigo-50 flex justify-between items-center text-xs bg-indigo-50/40";
+        customBtn.innerHTML = `<div><span class="font-bold text-indigo-700">'${q}'</span> <span class="text-slate-500 text-[11px]">지역으로 실시간 검색 및 일정 세팅</span></div><span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">선택</span>`;
+        customBtn.onclick = () => selectCityByName(q, "자유검색");
+        box.appendChild(customBtn);
+      }
+
+      matches.forEach(r => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left px-3.5 py-2 hover:bg-indigo-50 flex justify-between items-center text-xs transition";
+        btn.innerHTML = `<div><span class="font-bold text-slate-800">${r.name}</span> <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded ml-1">${r.prov}</span><p class="text-[11px] text-slate-400">${r.desc}</p></div><span class="text-[11px] text-indigo-600 font-bold">선택 →</span>`;
+        btn.onclick = () => selectCityByName(r.name, r.prov);
+        box.appendChild(btn);
+      });
+    }
+
+    function applyCityChangeSilently(name, prov) {
+      state.selectedCityName = name;
+      state.selectedCityProv = prov;
+      document.getElementById('selected-city-badge').innerText = `선택됨: ${name} (${prov})`;
+      populateHotelZones(name);
+      updateHotelPreviewHint();
+      updatePinOptions();
+    }
+
+    function clearCitySearch() {
+      const input = document.getElementById('city-search-input');
+      input.value = "";
+      input.focus();
+      handleCitySearch("");
+    }
+
+    function selectCityByName(name, prov = "대한민국") {
+      document.getElementById('city-search-input').value = name;
+      document.getElementById('city-autocomplete').classList.add('hidden');
+      applyCityChangeSilently(name, prov);
+    }
+
+    function updatePinOptions() {
+      const pinSelect = document.getElementById('plan-pin');
+      const spots = getCandidatePool(state.selectedCityName);
+      pinSelect.innerHTML = `<option value="none">내장 후보에서 고정 안 함</option>`;
+      spots.forEach(s => {
+        pinSelect.innerHTML += `<option value="${s.id}">[고정] ${s.name} (${s.category} · ${s.zone})</option>`;
+      });
+    }
+
+    function detectSeasonFromDate(dateStr) {
+      const month = parseLocalDate(dateStr).getMonth() + 1;
+      if (month >= 3 && month <= 5) return 'spring';
+      if (month >= 6 && month <= 8) return 'summer';
+      if (month >= 9 && month <= 11) return 'autumn';
+      return 'winter';
+    }
+
+    function updateDensityLabel(val) {
+      const labels = { "3": "여유롭게 (하루 3곳)", "4": "표준 (하루 4~5곳)", "5": "알차게 (하루 5~6곳)" };
+      document.getElementById('density-label').innerText = labels[val];
+    }
+
+    function getTailoredSpotNote(spot) {
+      if (spot.customMemo) return `📌 <b>내 메모:</b> ${spot.customMemo}`;
+      const comp = state.plannedCompanion;
+      let notes = [];
+
+      if (spot.isNewHot) {
+        notes.push("🔥 <b>[실시간 신상·핫플]</b> 최근 오픈 및 화제성이 높은 추천 장소입니다");
+      } else if (comp === 'family') {
+        notes.push(spot.indoor ? "실내 동선이라 가족과 쾌적하게 둘러보기 좋습니다" : "보행로가 완만해 가족 산책에 적합합니다");
+      } else if (comp === 'couple') {
+        notes.push(spot.slot === 'sunset' || spot.slot === 'night' ? "노을·야경 무드가 뛰어나 데이트 하이라이트로 추천합니다" : "함께 사진 남기기 좋은 감성 스팟입니다");
+      } else {
+        notes.push("시간대 및 동선 정합성이 검증된 추천 코스입니다");
+      }
+      return notes.join(" · ");
+    }
+
+    // 일정 생성 메인 엔트리 (항상 서버리스 실시간 검색 우선 호출)
+    function generateItineraryFromPlanned() {
+      const rawCity = document.getElementById('city-search-input').value.trim();
+      if (rawCity) {
+        const match = KOREA_REGIONS.find(r => r.name === rawCity || r.name.startsWith(rawCity));
+        if (match && match.name !== state.selectedCityName) {
+          applyCityChangeSilently(match.name, match.prov);
+        } else if (!match && rawCity !== state.selectedCityName) {
+          applyCityChangeSilently(rawCity, "자유검색");
+        }
+      }
+
+      state.startDate = document.getElementById('plan-start').value || '2026-10-17';
+      state.endDate = document.getElementById('plan-end').value || '2026-10-18';
+      state.currentSeason = detectSeasonFromDate(state.startDate);
+      state.arrivalHour = parseInt(document.getElementById('plan-arrival').value, 10);
+      state.density = parseInt(document.getElementById('plan-density').value, 10);
+      state.pinnedSpotId = document.getElementById('plan-pin').value;
+
+      const sDate = parseLocalDate(state.startDate);
+      const eDate = parseLocalDate(state.endDate);
+      state.tripDays = Math.max(2, Math.min(4, Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1));
+
+      if (state.stayMode !== 'recommend') {
+        state.hotel1Zone = document.getElementById('hotel-zone-1').value;
+        state.hotel1Name = document.getElementById('hotel-name-1').value.trim();
+        state.hotel2Zone = state.stayMode === 'multi' ? document.getElementById('hotel-zone-2').value : state.hotel1Zone;
+        state.hotel2Name = state.stayMode === 'multi' ? document.getElementById('hotel-name-2').value.trim() : state.hotel1Name;
+      }
+
+      state.rainMode = false;
+      fetchLiveItineraryWithGemini();
+    }
+
+    function buildSlotVerifiedItinerary() {
+      let pool = getCandidatePool(state.selectedCityName);
+      state.alerts = [];
+      const zoneDefs = getHotelZonesForCity(state.selectedCityName);
+      const cMeta = COMPANION_META[state.plannedCompanion];
+      const pMeta = PURPOSE_META[state.plannedPurpose];
+
+      if (state.plannedTransport === 'transit') {
+        const transitSpots = pool.filter(s => s.transitFriendly !== false);
+        const outerSpots = pool.filter(s => s.transitFriendly === false);
+        pool = [...transitSpots, ...outerSpots];
+      }
+
+      const usedIds = new Set();
+      const pinnedSpot = state.pinnedSpotId !== 'none' ? pool.find(s => s.id === state.pinnedSpotId) : null;
+      if (pinnedSpot) usedIds.add(pinnedSpot.id);
+
+      function pickOneForSlot(slotType, preferredZoneId, fallbackAllowed = true) {
+        if (pinnedSpot && !pinnedSpot._placed && pinnedSpot.slot === slotType) {
+          pinnedSpot._placed = true;
+          return JSON.parse(JSON.stringify(pinnedSpot));
+        }
+
+        let candidate = pool.find(s => !usedIds.has(s.id) && s.slot === slotType && (!preferredZoneId || s.zoneGroup === preferredZoneId));
+        if (!candidate) candidate = pool.find(s => !usedIds.has(s.id) && s.slot === slotType);
+        if (!candidate && fallbackAllowed) {
+          candidate = pool.find(s => !usedIds.has(s.id) && (slotType === 'lunch' ? s.category === '식당' : s.category !== '식당'));
+        }
+        if (!candidate) {
+          const shortCity = state.selectedCityName.replace(/시|군|광역시/g, "");
+          const slotLabels = {
+            morning: { name: `${shortCity} 아침 산책 명소 & 수변공원`, cat: "명소", indoor: false, stayMin: 75 },
+            lunch: { name: `${shortCity} 로컬 맛집 점심 특선`, cat: "식당", indoor: true, bt: "15:00~17:00", stayMin: 70 },
+            afternoon: { name: `${shortCity} 문화거리 & 전시관 투어`, cat: "명소", indoor: true, stayMin: 75 },
+            cafe: { name: `${shortCity} 뷰포인트 디저트 카페`, cat: "카페", indoor: true, stayMin: 60 },
+            sunset: { name: `${shortCity} 일몰 노을 전망대`, cat: "일몰명소", indoor: false, stayMin: 60 },
+            night: { name: `${shortCity} 야간 경관 산책 & 야시장`, cat: "야경", indoor: false, stayMin: 70 }
+          };
+          const tpl = slotLabels[slotType] || slotLabels.afternoon;
+          return {
+            id: `auto_${slotType}_${Math.random().toString(36).slice(2, 6)}`,
+            slot: slotType,
+            stayMin: tpl.stayMin,
+            name: tpl.name,
+            category: tpl.cat,
+            zone: `${shortCity} 주요권역`,
+            indoor: tpl.indoor,
+            breakTime: tpl.bt || null,
+            desc: `${state.selectedCityName} 일정 흐름에 맞춰 배정된 추천 코스입니다.`,
+            travelMin: 15
+          };
+        }
+
+        usedIds.add(candidate.id);
+        return JSON.parse(JSON.stringify(candidate));
+      }
+
+      const targetZone1 = state.stayMode === 'recommend' ? zoneDefs[0].id : state.hotel1Zone;
+      const otherZoneObj = zoneDefs.find(z => z.id !== targetZone1) || zoneDefs[0];
+      const outerZoneId = otherZoneObj.id;
+
+      let groupedByDay = { 1: [], 2: [], 3: [], 4: [] };
+
+      for (let d = 1; d <= state.tripDays; d++) {
+        let dayTemplate = [];
+
+        if (d === 1) {
+          const earlyZone = (state.stayMode === 'single' && state.plannedTransport === 'car') ? outerZoneId : targetZone1;
+          const lateZone = targetZone1;
+
+          if (state.arrivalHour === 10) {
+            dayTemplate = [
+              { slot: 'morning', time: '10:00', zonePref: earlyZone },
+              { slot: 'lunch', time: '12:00', zonePref: earlyZone },
+              { slot: 'afternoon', time: '13:45', zonePref: earlyZone },
+              { slot: 'cafe', time: '15:35', zonePref: lateZone },
+              { slot: 'sunset', time: '17:15', zonePref: lateZone },
+              { slot: 'night', time: '19:00', zonePref: lateZone }
+            ];
+          } else if (state.arrivalHour === 12) {
+            dayTemplate = [
+              { slot: 'lunch', time: '12:00', zonePref: earlyZone },
+              { slot: 'afternoon', time: '13:45', zonePref: earlyZone },
+              { slot: 'cafe', time: '15:30', zonePref: lateZone },
+              { slot: 'sunset', time: '17:15', zonePref: lateZone },
+              { slot: 'night', time: '19:00', zonePref: lateZone }
+            ];
+          } else {
+            dayTemplate = [
+              { slot: 'afternoon', time: '15:00', zonePref: earlyZone },
+              { slot: 'cafe', time: '16:35', zonePref: lateZone },
+              { slot: 'sunset', time: '17:45', zonePref: lateZone },
+              { slot: 'night', time: '19:15', zonePref: lateZone }
+            ];
+          }
+        } else {
+          const morningZone = (d === 2 && state.stayMode === 'single') ? targetZone1 : (state.stayMode === 'multi' ? state.hotel2Zone : outerZoneId);
+          dayTemplate = [
+            { slot: 'morning', time: '10:00', zonePref: morningZone },
+            { slot: 'lunch', time: '12:00', zonePref: morningZone },
+            { slot: 'afternoon', time: '14:00', zonePref: outerZoneId },
+            { slot: 'cafe', time: '16:00', zonePref: outerZoneId }
+          ];
+          if (d < state.tripDays) dayTemplate.push({ slot: 'night', time: '18:15', zonePref: morningZone });
+        }
+
+        let maxCount = (d === 1 && state.arrivalHour === 10) ? Math.max(state.density + 1, 5) : state.density;
+        if (d === 1 && state.arrivalHour === 12 && state.density === 4) maxCount = 5;
+
+        const selectedTemplate = dayTemplate.slice(0, maxCount);
+        groupedByDay[d] = selectedTemplate.map(t => {
+          const spotObj = pickOneForSlot(t.slot, t.zonePref);
+          spotObj.time = t.time;
+          return spotObj;
+        });
+      }
+
+      const customPinText = document.getElementById('plan-pin-custom').value.trim();
+      if (customPinText) {
+        groupedByDay[1].splice(1, 0, {
+          id: `custom_pin_${Date.now()}`,
+          time: "14:00",
+          stayMin: 70,
+          name: customPinText,
+          category: "명소",
+          zone: state.selectedCityName,
+          indoor: true,
+          isCustomAdded: true,
+          desc: "직접 입력하신 필수 방문 희망 장소입니다.",
+          travelMin: 15
+        });
+      }
+
+      state.daysData = groupedByDay;
+
+      for (let d = 1; d < state.tripDays; d++) {
+        if (state.stayMode === 'recommend') {
+          let recZone = zoneDefs[(d - 1) % zoneDefs.length];
+          if (state.plannedTransport === 'transit') recZone = zoneDefs[0];
+
+          state.daysData[d].push({
+            id: `rec_hotel_night_${d}`,
+            time: "20:30",
+            stayMin: 60,
+            isHotelNode: true,
+            isRecommendHotel: true,
+            manualTimeLocked: false,
+            name: `💡 ${d}박차 추천 숙박 위치: [${recZone.shortZone}]`,
+            category: "예약숙소",
+            zone: recZone.shortZone,
+            indoor: true,
+            recommendTypes: `${cMeta.hotelType} (${recZone.recommendTypes})`,
+            desc: `[${cMeta.label} · ${pMeta.label} 맞춤] ${recZone.recommendReason}`,
+            searchQuery: `${state.selectedCityName} ${recZone.shortZone.split('/')[0]} 숙소`,
+            travelMin: 12
+          });
+        } else {
+          const zId = (d === 1 || state.stayMode === 'single') ? state.hotel1Zone : state.hotel2Zone;
+          const zDef = zoneDefs.find(z => z.id === zId) || zoneDefs[0];
+          const customName = (d === 1 || state.stayMode === 'single')
+            ? (state.hotel1Name || `${state.selectedCityName} ${zDef.shortZone} 숙소`)
+            : (state.hotel2Name || `${state.selectedCityName} ${zDef.shortZone} 숙소`);
+
+          state.daysData[d].push({
+            id: `booked_hotel_night_${d}`,
+            time: "20:30",
+            stayMin: 60,
+            isHotelNode: true,
+            isRecommendHotel: false,
+            manualTimeLocked: false,
+            name: `🏨 ${customName} 체크인 & 휴식`,
+            category: "예약숙소",
+            zone: zDef.shortZone,
+            indoor: true,
+            desc: `체크인 후 휴식하거나 하단 ➕버튼으로 체크인 이후 심야 일정을 추가할 수 있습니다.`,
+            searchQuery: `${state.selectedCityName} ${customName}`,
+            travelMin: 12
+          });
+        }
+        recalculateHotelCheckinTime(d);
+      }
+
+      const h1Def = zoneDefs.find(z => z.id === state.hotel1Zone) || zoneDefs[0];
+      state.routeExplanation = `🏨 <b>[${h1Def.shortZone}] 동선 및 체크인 계산 완료:</b> 마지막 코스 종료 시각과 이동 시간을 반영하여 체크인 시간을 산출했습니다.`;
+
+      state.activeDay = 1;
+      document.getElementById('view-unplanned').classList.add('hidden');
+      document.getElementById('view-planned').classList.add('hidden');
+      document.getElementById('view-itinerary').classList.remove('hidden');
+
+      renderItineraryView();
+    }
+
+    function renderItineraryView() {
+      const seasonInfo = SEASON_META[state.currentSeason];
+      const cMeta = COMPANION_META[state.plannedCompanion];
+      const pMeta = PURPOSE_META[state.plannedPurpose];
+      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+      const dStart = parseLocalDate(state.startDate);
+      const dEnd = parseLocalDate(state.endDate);
+      const nights = state.tripDays - 1;
+      const isTransit = state.plannedTransport === 'transit';
+
+      document.getElementById('itin-badges').innerHTML = `
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">📍 ${state.selectedCityName}</span>
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">🗓️ ${nights}박 ${state.tripDays}일</span>
+        ${state.isLiveGenerated ? `<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white">🌐 Google 실시간 검색됨</span>` : ''}
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">${cMeta.badge}</span>
+      `;
+
+      const startHourFormatted = formatDisplayTime(`${String(state.arrivalHour).padStart(2, '0')}:00`);
+      document.getElementById('itin-title').innerText = `${state.selectedCityName} ${nights}박 ${state.tripDays}일 맞춤 일정`;
+      document.getElementById('itin-meta').innerText = `${state.startDate}(${dayNames[dStart.getDay()]}) ~ ${state.endDate}(${dayNames[dEnd.getDay()]}) · 첫날 ${startHourFormatted} 시작`;
+      document.getElementById('hotel-route-summary').innerHTML = state.routeExplanation;
+      document.getElementById('add-btn-day-num').innerText = state.activeDay;
+
+      const sourcesBox = document.getElementById('grounding-sources-box');
+      if (state.isLiveGenerated && state.groundingSources.length > 0) {
+        sourcesBox.classList.remove('hidden');
+        const linksHtml = state.groundingSources.map(s =>
+          `<a href="${s.uri}" target="_blank" class="inline-block bg-white border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded-md text-[10px] font-semibold hover:bg-emerald-100 mr-1 mb-1">🔗 ${s.title.slice(0, 22)}... ↗</a>`
+        ).join("");
+        sourcesBox.innerHTML = `<p class="font-bold text-[11px] mb-1">🌐 실시간 웹 검색 참고 출처 (Google Grounding):</p><div>${linksHtml}</div>`;
+      } else {
+        sourcesBox.classList.add('hidden');
+      }
+
+      const tabsContainer = document.getElementById('day-tabs-container');
+      tabsContainer.innerHTML = "";
+      for (let d = 1; d <= state.tripDays; d++) {
+        const dayDate = new Date(dStart.getFullYear(), dStart.getMonth(), dStart.getDate() + (d - 1));
+        const mDayStr = `${dayDate.getMonth() + 1}/${dayDate.getDate()}(${dayNames[dayDate.getDay()]})`;
+        const count = (state.daysData[d] || []).filter(s => !s.isHotelNode).length;
+        const btn = document.createElement('button');
+        btn.onclick = () => switchDay(d);
+        btn.className = state.activeDay === d
+          ? "flex-1 py-2 px-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm transition"
+          : "flex-1 py-2 px-1 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition";
+        btn.innerHTML = `Day ${d} <span class="text-[10px] opacity-90">(${count}곳)</span><span class="block text-[10px] font-normal opacity-80">${mDayStr}</span>`;
+        tabsContainer.appendChild(btn);
+      }
+
+      const currentList = state.daysData[state.activeDay] || [];
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = "";
+
+      let breakTimeConflictMsg = null;
+
+      currentList.forEach((spot, index) => {
+        const assignedTime24 = spot.time || "14:00";
+        const stayMin = getStayDurationMin(spot);
+        const endTime24 = minutesToTime24(timeToMinutes(assignedTime24) + stayMin, false);
+
+        const displayStart = formatDisplayTime(assignedTime24);
+        const displayEnd = formatDisplayTime(endTime24);
+
+        const isSwappedToPlanB = state.rainMode && !spot.indoor && spot.planB;
+        const displayName = isSwappedToPlanB ? spot.planB.name : spot.name;
+        const displayDesc = isSwappedToPlanB ? spot.planB.desc : spot.desc;
+        const displayCategory = isSwappedToPlanB ? "실내 대안(Plan B)" : spot.category;
+
+        const resData = getReservationData(spot, state.selectedCityName, isSwappedToPlanB);
+
+        const hourNum = parseInt(assignedTime24.split(':')[0], 10);
+        const isBreakTimeConflict = spot.category === '식당' && spot.breakTime && (hourNum >= 15 && hourNum < 17);
+        if (isBreakTimeConflict) {
+          breakTimeConflictMsg = `⚠️ <b>브레이크타임 충돌 알림:</b> [${spot.name}] 방문 시각이 <b>${displayStart}</b>로 설정되어 매장 브레이크타임(${spot.breakTime})과 겹칩니다!`;
+        }
+
+        const item = document.createElement('div');
+
+        if (spot.isHotelNode) {
+          item.className = spot.isRecommendHotel
+            ? "p-4 rounded-2xl border-2 border-emerald-500 bg-gradient-to-br from-emerald-950 to-slate-900 text-white shadow-md space-y-2.5"
+            : "p-4 rounded-2xl border border-indigo-800 bg-indigo-950 text-white shadow-md space-y-2.5";
+
+          const calcBadgeText = spot.manualTimeLocked
+            ? `✏️ 사용자 직접 지정 체크인 시각 (${displayStart})`
+            : (spot.lastSpotName
+                ? `⏱️ 직전 [${spot.lastSpotName}] ${formatDisplayTime(spot.lastSpotEndTime)} 종료 + 이동 ${spot.moveMin}분 반영`
+                : `⏱️ 일정 연동 체크인 시각`);
+
+          item.innerHTML = `
+            <div class="flex justify-between items-start gap-2">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <div class="relative inline-flex items-center bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg px-2.5 py-1 cursor-pointer shadow-sm">
+                    <span class="text-xs font-extrabold">🔑 ${displayStart} 체크인 ▾</span>
+                    <input type="time" value="${assignedTime24}" onchange="updateSpotTime(${index}, this.value)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                  </div>
+                  <span class="text-[10px] font-bold text-amber-300">📍 ${spot.zone}</span>
+                </div>
+                <h4 class="text-sm font-bold text-white pt-0.5">${spot.name}</h4>
+              </div>
+              <div class="flex gap-1">
+                ${spot.manualTimeLocked ? `<button onclick="unlockHotelTime(${index})" class="text-[10px] bg-indigo-800 hover:bg-indigo-700 text-indigo-200 px-2 py-1 rounded-lg font-semibold">자동계산 복구</button>` : ''}
+                <button onclick="openEditSpotModal(${index})" class="text-[11px] bg-white/15 hover:bg-white/25 text-white px-2.5 py-1 rounded-lg font-semibold">✏️ 수정</button>
+              </div>
+            </div>
+            <div class="text-[11px] text-amber-200/95 bg-white/10 px-2.5 py-1.5 rounded-lg font-medium">
+              ${calcBadgeText}
+            </div>
+            <div class="flex justify-between items-center pt-1">
+              <p class="text-[11px] text-slate-300">${spot.desc}</p>
+              <a href="https://search.naver.com/search.naver?query=${encodeURIComponent(spot.searchQuery + ' 예약')}" target="_blank" class="text-[11px] text-amber-300 font-bold hover:underline whitespace-nowrap ml-2">숙소 검색 ↗</a>
+            </div>
+          `;
+        } else {
+          const tailoredNote = getTailoredSpotNote(spot);
+          const nextDayNum = state.activeDay < state.tripDays ? state.activeDay + 1 : 1;
+
+          item.className = `p-3.5 rounded-2xl border transition relative ${
+            isBreakTimeConflict ? 'bg-red-50/70 border-red-300' :
+            isSwappedToPlanB ? 'bg-sky-50/60 border-sky-200' :
+            spot.isNewHot ? 'bg-white border-indigo-300 ring-1 ring-indigo-100' : 'bg-white border-slate-200'
+          } shadow-sm`;
+
+          item.innerHTML = `
+            <div class="flex justify-between items-start gap-2">
+              <div class="flex items-start gap-2.5 flex-1">
+                <div class="flex flex-col items-center min-w-[78px]">
+                  <div class="relative w-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg px-1.5 py-1 text-center cursor-pointer transition">
+                    <span class="text-[11px] font-extrabold text-indigo-700 block leading-tight">${displayStart} ▾</span>
+                    <span class="text-[9px] text-indigo-500 font-medium block">~ ${displayEnd}</span>
+                    <input type="time" value="${assignedTime24}" onchange="updateSpotTime(${index}, this.value)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"/>
+                  </div>
+                  <span class="text-[9px] text-slate-400 mt-1 text-center leading-tight">체류 약 ${stayMin}분<br>📍${spot.zone}</span>
+                </div>
+
+                <div class="flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      isSwappedToPlanB ? 'bg-sky-600 text-white' :
+                      spot.category === '식당' ? 'bg-orange-100 text-orange-800' :
+                      spot.category === '카페' ? 'bg-amber-100 text-amber-800' :
+                      'bg-slate-100 text-slate-700'
+                    }">${displayCategory}</span>
+                    ${spot.isNewHot ? `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-rose-500 to-amber-500 text-white">🔥 실시간 신상·핫플</span>` : ''}
+                    ${spot.isLiveSpot && !spot.isNewHot ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">🌐 AI 실시간검색</span>` : ''}
+                    ${resData ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">\${resData.badgeText}</span>` : ''}
+                  </div>
+                  <h4 class="text-sm font-bold text-slate-900 mt-1">${displayName}</h4>
+                  <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">${displayDesc}</p>
+                  <p class="text-[11px] text-indigo-700 bg-indigo-50/70 px-2 py-1 rounded-md mt-1.5 leading-snug">
+                    ${tailoredNote}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <button onclick="moveSpot(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 text-[10px] font-bold disabled:opacity-30">▲</button>
+                <button onclick="moveSpot(${index}, 1)" ${index >= currentList.length - 1 ? 'disabled' : ''} class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 text-[10px] font-bold disabled:opacity-30">▼</button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-1.5 mt-3 pt-2.5 border-t border-slate-100">
+              <div class="flex items-center gap-1 flex-wrap">
+                <button onclick="openSwapModal(${index})" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition">🔄 교체</button>
+                <button onclick="openEditSpotModal(${index})" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">✏️ 수정·메모</button>
+                <button onclick="moveSpotToOtherDay(${index}, ${nextDayNum})" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition">📅 D${nextDayNum}이동</button>
+                <button onclick="deleteSpot(${index})" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-semibold transition">🗑️ 삭제</button>
+              </div>
+
+              <div class="flex items-center gap-1.5 ml-auto">
+                ${resData ? `
+                  <a href="\${resData.url}" target="_blank" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold shadow-sm transition whitespace-nowrap">
+                    \${resData.btnLabel}
+                  </a>
+                ` : ''}
+                <a href="https://map.naver.com/p/search/${encodeURIComponent(state.selectedCityName + ' ' + displayName)}" target="_blank" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold transition whitespace-nowrap">
+                  지도·길찾기 ↗
+                </a>
+              </div>
+            </div>
+          `;
+        }
+        container.appendChild(item);
+      });
+
+      const banner = document.getElementById('validation-banner');
+      if (breakTimeConflictMsg) {
+        banner.classList.remove('hidden');
+        banner.className = "rounded-xl p-3 text-xs bg-red-50 border border-red-200 text-red-900";
+        banner.innerHTML = `<p>${breakTimeConflictMsg}</p>`;
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // ==================== [편집 · 교체 · 내보내기 함수들] ====================
+
+    function updateSpotTime(index, newTime24) {
+      if (!newTime24) return;
+      const list = state.daysData[state.activeDay];
+      const targetSpot = list[index];
+      targetSpot.time = newTime24;
+
+      if (targetSpot.isHotelNode) {
+        targetSpot.manualTimeLocked = true;
+        sortDayByTime(state.activeDay);
+      } else {
+        recalculateHotelCheckinTime(state.activeDay);
+      }
+      renderItineraryView();
+      showToast(`⏰ 방문 시각이 ${formatDisplayTime(newTime24)}(으)로 업데이트되었습니다.`);
+    }
+
+    function unlockHotelTime(index) {
+      const list = state.daysData[state.activeDay];
+      if (list[index]) {
+        list[index].manualTimeLocked = false;
+        recalculateHotelCheckinTime(state.activeDay);
+        renderItineraryView();
+      }
+    }
+
+    function moveSpot(index, direction) {
+      const list = state.daysData[state.activeDay];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= list.length) return;
+
+      const timeA = list[index].time;
+      const timeB = list[targetIndex].time;
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+      list[index].time = timeA;
+      list[targetIndex].time = timeB;
+
+      if (list[index].isHotelNode || list[targetIndex].isHotelNode) {
+        const hNode = list.find(s => s.isHotelNode);
+        if (hNode) hNode.manualTimeLocked = true;
+      } else {
+        recalculateHotelCheckinTime(state.activeDay);
+      }
+      renderItineraryView();
+    }
+
+    function deleteSpot(index) {
+      const list = state.daysData[state.activeDay];
+      const removed = list.splice(index, 1)[0];
+      recalculateHotelCheckinTime(state.activeDay);
+      renderItineraryView();
+      showToast(`🗑️ [${removed.name}] 삭제 및 체크인 시각 재계산 완료!`);
+    }
+
+    function moveSpotToOtherDay(index, targetDayNum) {
+      const currentList = state.daysData[state.activeDay];
+      const targetList = state.daysData[targetDayNum] || [];
+      const spot = currentList.splice(index, 1)[0];
+      targetList.push(spot);
+      recalculateHotelCheckinTime(state.activeDay);
+      recalculateHotelCheckinTime(targetDayNum);
+      renderItineraryView();
+      showToast(`📅 [${spot.name}] 일정을 Day ${targetDayNum}로 이동했습니다.`);
+    }
+
+    function openSwapModal(index) {
+      state.swapTargetIndex = index;
+      const currentSpot = state.daysData[state.activeDay][index];
+      document.getElementById('swap-modal-title').innerText = `[${currentSpot.name}] 대신 어디로 갈까요?`;
+      const defaultCat = ['식당', '카페', '명소'].includes(currentSpot.category) ? currentSpot.category : 'all';
+      filterSwapCandidates(defaultCat);
+      document.getElementById('modal-swap').classList.remove('hidden');
+    }
+
+    function closeSwapModal() {
+      document.getElementById('modal-swap').classList.add('hidden');
+      state.swapTargetIndex = null;
+    }
+
+    function filterSwapCandidates(cat) {
+      state.swapFilterCat = cat;
+      document.querySelectorAll('.swap-tab').forEach(btn => {
+        const isMatch = (cat === 'all' && btn.innerText.includes('전체')) || btn.innerText.includes(cat);
+        btn.className = isMatch
+          ? "swap-tab px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white whitespace-nowrap"
+          : "swap-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 whitespace-nowrap";
+      });
+
+      const pool = [...state.liveSwapPool, ...getCandidatePool(state.selectedCityName)];
+      const currentSpot = state.daysData[state.activeDay][state.swapTargetIndex];
+
+      let candidates = pool.filter(s => s.id !== currentSpot.id);
+      if (cat !== 'all') {
+        if (cat === '야경') candidates = candidates.filter(s => s.category === '야경' || s.category === '일몰명소');
+        else candidates = candidates.filter(s => s.category === cat);
+      }
+
+      const listEl = document.getElementById('swap-candidates-list');
+      listEl.innerHTML = "";
+
+      candidates.forEach(c => {
+        const card = document.createElement('div');
+        card.className = "p-3 rounded-xl border border-slate-200 hover:border-indigo-500 bg-slate-50/60 flex justify-between items-center gap-2 transition";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">${c.category}</span>
+              ${c.isNewHot ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500 text-white">🔥 실시간 신상</span>` : ''}
+              <span class="text-[10px] text-slate-500">📍${c.zone}</span>
+            </div>
+            <h4 class="text-xs font-bold text-slate-900 mt-1">${c.name}</h4>
+            <p class="text-[11px] text-slate-500 mt-0.5">${c.desc}</p>
+          </div>
+          <button onclick='confirmSwapSpot(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-xl whitespace-nowrap">
+            교체하기
+          </button>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    function confirmSwapSpot(newSpotObj) {
+      const list = state.daysData[state.activeDay];
+      const oldSpot = list[state.swapTargetIndex];
+      const copyNew = JSON.parse(JSON.stringify(newSpotObj));
+      copyNew.time = oldSpot.time;
+      list[state.swapTargetIndex] = copyNew;
+
+      recalculateHotelCheckinTime(state.activeDay);
+      closeSwapModal();
+      renderItineraryView();
+      showToast(`🔄 [${copyNew.name}](으)로 교체되었습니다!`);
+    }
+
+    function openAddSpotModal() {
+      state.editingSpotIndex = null;
+      const list = state.daysData[state.activeDay] || [];
+      const hotelNode = list.find(s => s.isHotelNode);
+      let suggestedTime = "16:30";
+      if (hotelNode && hotelNode.time) {
+        suggestedTime = minutesToTime24(timeToMinutes(hotelNode.time) + 50, true);
+      }
+
+      document.getElementById('add-edit-badge').innerText = `➕ Day ${state.activeDay} 일정 추가`;
+      document.getElementById('add-edit-title').innerText = `Day ${state.activeDay} 새 장소 추가`;
+      document.getElementById('add-mode-tabs').classList.remove('hidden');
+      switchAddTab('custom');
+
+      document.getElementById('custom-spot-time').value = suggestedTime;
+      document.getElementById('custom-spot-stay').value = "60";
+      document.getElementById('custom-spot-cat').value = "야경";
+      document.getElementById('custom-spot-name').value = "";
+      document.getElementById('custom-spot-zone').value = `${state.selectedCityName}`;
+      document.getElementById('custom-spot-res').value = "auto";
+      document.getElementById('custom-spot-desc').value = "";
+      document.getElementById('btn-save-custom').innerText = "➕ 이 시각에 일정 추가하기";
+
+      document.getElementById('modal-add-edit').classList.remove('hidden');
+    }
+
+    function openEditSpotModal(index) {
+      state.editingSpotIndex = index;
+      const spot = state.daysData[state.activeDay][index];
+
+      document.getElementById('add-edit-badge').innerText = `✏️ 일정 · 체류시간 · 메모 수정`;
+      document.getElementById('add-edit-title').innerText = `[${spot.name}] 수정하기`;
+      document.getElementById('add-mode-tabs').classList.add('hidden');
+      document.getElementById('form-custom-spot').classList.remove('hidden');
+      document.getElementById('pool-add-list').classList.add('hidden');
+
+      document.getElementById('custom-spot-time').value = spot.time || "14:00";
+      document.getElementById('custom-spot-stay').value = getStayDurationMin(spot);
+      document.getElementById('custom-spot-cat').value = spot.category || "명소";
+      document.getElementById('custom-spot-name').value = spot.name;
+      document.getElementById('custom-spot-zone').value = spot.zone || "";
+      document.getElementById('custom-spot-res').value = spot.resOption || "auto";
+      document.getElementById('custom-spot-desc').value = spot.customMemo || spot.desc || "";
+      document.getElementById('btn-save-custom').innerText = "💾 수정 내역 저장하기";
+
+      document.getElementById('modal-add-edit').classList.remove('hidden');
+    }
+
+    function closeAddEditModal() {
+      document.getElementById('modal-add-edit').classList.add('hidden');
+      state.editingSpotIndex = null;
+    }
+
+    function switchAddTab(tabMode) {
+      const btnCustom = document.getElementById('tab-add-custom');
+      const btnPool = document.getElementById('tab-add-pool');
+      const formCustom = document.getElementById('form-custom-spot');
+      const listPool = document.getElementById('pool-add-list');
+
+      if (tabMode === 'custom') {
+        btnCustom.className = "py-1.5 text-xs font-bold rounded-lg bg-white text-indigo-600 shadow-sm";
+        btnPool.className = "py-1.5 text-xs font-semibold rounded-lg text-slate-600";
+        formCustom.classList.remove('hidden');
+        listPool.classList.add('hidden');
+      } else {
+        btnPool.className = "py-1.5 text-xs font-bold rounded-lg bg-white text-indigo-600 shadow-sm";
+        btnCustom.className = "py-1.5 text-xs font-semibold rounded-lg text-slate-600";
+        formCustom.classList.add('hidden');
+        listPool.classList.remove('hidden');
+        renderPoolAddList();
+      }
+    }
+
+    function renderPoolAddList() {
+      const pool = [...state.liveSwapPool, ...getCandidatePool(state.selectedCityName)];
+      const listEl = document.getElementById('pool-add-list');
+      listEl.innerHTML = "";
+
+      pool.forEach(c => {
+        const card = document.createElement('div');
+        card.className = "p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex justify-between items-center gap-2";
+        card.innerHTML = `
+          <div>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">${c.category}</span>
+            <span class="text-[10px] text-slate-500 ml-1">📍${c.zone}</span>
+            <h4 class="text-xs font-bold text-slate-900 mt-1">${c.name}</h4>
+            <p class="text-[11px] text-slate-500 mt-0.5">${c.desc}</p>
+          </div>
+          <button onclick='addSpotFromPool(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="px-3 py-2 bg-slate-900 hover:bg-indigo-600 text-white text-[11px] font-bold rounded-xl whitespace-nowrap">
+            + 추가
+          </button>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    function addSpotFromPool(spotObj) {
+      const list = state.daysData[state.activeDay];
+      const copy = JSON.parse(JSON.stringify(spotObj));
+      const pickedTime = document.getElementById('custom-spot-time').value || "16:30";
+      copy.time = pickedTime;
+      copy.isCustomAdded = true;
+
+      const hotelNode = list.find(s => s.isHotelNode);
+      if (hotelNode && timeToMinutes(pickedTime) > timeToMinutes(hotelNode.time)) {
+        hotelNode.manualTimeLocked = true;
+      }
+
+      list.push(copy);
+      recalculateHotelCheckinTime(state.activeDay);
+      closeAddEditModal();
+      renderItineraryView();
+      showToast(`✨ [${copy.name}] 일정이 ${formatDisplayTime(pickedTime)}에 추가되었습니다!`);
+    }
+
+    function saveCustomOrEditedSpot() {
+      const timeVal = document.getElementById('custom-spot-time').value || "14:00";
+      const stayVal = parseInt(document.getElementById('custom-spot-stay').value, 10) || 60;
+      const catVal = document.getElementById('custom-spot-cat').value;
+      const nameVal = document.getElementById('custom-spot-name').value.trim();
+      const zoneVal = document.getElementById('custom-spot-zone').value.trim() || state.selectedCityName;
+      const resVal = document.getElementById('custom-spot-res').value;
+      const descVal = document.getElementById('custom-spot-desc').value.trim();
+
+      if (!nameVal) {
+        showToast("⚠️ 장소 이름을 입력해 주세요!");
+        return;
+      }
+
+      const list = state.daysData[state.activeDay];
+      const hotelNode = list.find(s => s.isHotelNode);
+
+      if (state.editingSpotIndex !== null) {
+        const target = list[state.editingSpotIndex];
+        target.time = timeVal;
+        target.stayMin = stayVal;
+        target.category = catVal;
+        target.name = nameVal;
+        target.zone = zoneVal;
+        target.resOption = resVal;
+        target.customMemo = descVal;
+        target.desc = descVal || target.desc;
+        if (target.isHotelNode) target.manualTimeLocked = true;
+      } else {
+        if (hotelNode && timeToMinutes(timeVal) > timeToMinutes(hotelNode.time)) {
+          hotelNode.manualTimeLocked = true;
+        }
+        list.push({
+          id: `custom_${Date.now()}`,
+          time: timeVal,
+          stayMin: stayVal,
+          category: catVal,
+          name: nameVal,
+          zone: zoneVal,
+          indoor: true,
+          resOption: resVal,
+          isHotelNode: catVal === '예약숙소',
+          isCustomAdded: true,
+          customMemo: descVal || "직접 추가한 일정입니다.",
+          desc: descVal || `${state.selectedCityName} 사용자 추가 일정`,
+          travelMin: 12
+        });
+      }
+
+      recalculateHotelCheckinTime(state.activeDay);
+      closeAddEditModal();
+      renderItineraryView();
+      showToast(`✅ [${nameVal}] 일정이 ${formatDisplayTime(timeVal)}에 반영되었습니다!`);
+    }
+
+    function exportToNativeCalendar() {
+      const formatICSDate = (dateObj, timeStr, addMinutes = 0) => {
+        const [hour, min] = (timeStr || "12:00").split(':').map(Number);
+        const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hour, min + addMinutes);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+      };
+
+      let icsLines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//TripSync AI Serverless//Smart Itinerary//KO",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+      ];
+
+      const baseStart = parseLocalDate(state.startDate);
+
+      for (let d = 1; d <= state.tripDays; d++) {
+        const spots = state.daysData[d] || [];
+        const dayDate = new Date(baseStart.getFullYear(), baseStart.getMonth(), baseStart.getDate() + (d - 1));
+
+        spots.forEach((spot, idx) => {
+          const timeStr = spot.time || "14:00";
+          const stayMin = getStayDurationMin(spot);
+          const isSwapped = state.rainMode && !spot.indoor && spot.planB;
+          const resData = getReservationData(spot, state.selectedCityName, isSwapped);
+
+          const title = spot.isHotelNode
+            ? spot.name
+            : `[${state.selectedCityName} D${d}] ${isSwapped ? spot.planB.name : spot.name}`;
+          const desc = (spot.customMemo ? `[메모: ${spot.customMemo}] ` : '') +
+                       (isSwapped ? `${spot.planB.desc} (우천 Plan B)` : spot.desc) +
+                       (resData ? ` / 예약링크: ${resData.url}` : '');
+          const dtStart = formatICSDate(dayDate, timeStr, 0);
+          const dtEnd = formatICSDate(dayDate, timeStr, stayMin);
+
+          icsLines.push(
+            "BEGIN:VEVENT",
+            `UID:tripsync-final-d${d}-${spot.id}-${idx}@tripsync.ai`,
+            `DTSTAMP:${formatICSDate(dayDate, "09:00", 0)}`,
+            `DTSTART;TZID=Asia/Seoul:${dtStart}`,
+            `DTEND;TZID=Asia/Seoul:${dtEnd}`,
+            `SUMMARY:${title}`,
+            `LOCATION:${state.selectedCityName} ${spot.zone}`,
+            `DESCRIPTION:${desc}`,
+            "END:VEVENT"
+          );
+        });
+      }
+
+      icsLines.push("END:VCALENDAR");
+
+      const blob = new Blob([icsLines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `TripSync_${state.selectedCityName}_일정표.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`📅 .ics 캘린더 파일이 생성되었습니다!`);
+    }
+
+    async function exportToNativeNotes() {
+      const baseStart = parseLocalDate(state.startDate);
+      let dayBlocks = [];
+
+      for (let d = 1; d <= state.tripDays; d++) {
+        const spots = state.daysData[d] || [];
+        const dayDate = new Date(baseStart.getFullYear(), baseStart.getMonth(), baseStart.getDate() + (d - 1));
+        const dateStr = formatLocalDate(dayDate);
+
+        const lines = spots.map(s => {
+          const t24 = s.time || "14:00";
+          const end24 = minutesToTime24(timeToMinutes(t24) + getStayDurationMin(s), false);
+          const timeLabel = s.isHotelNode
+            ? `${formatDisplayTime(t24)} 체크인`
+            : `${formatDisplayTime(t24)}~${formatDisplayTime(end24)}`;
+          const isSwapped = state.rainMode && !s.indoor && s.planB;
+          const name = isSwapped ? s.planB.name : s.name;
+          return `  • ${timeLabel} | [${s.category}] ${name} (${s.zone})`;
+        });
+        dayBlocks.push(`[Day ${d} - ${dateStr}]\n` + lines.join("\n"));
+      }
+
+      const fullText = `✈️ [${state.selectedCityName} ${state.tripDays - 1}박 ${state.tripDays}일 여행 일정표]\n` +
+        `📅 기간: ${state.startDate} ~ ${state.endDate}\n\n` +
+        dayBlocks.join("\n\n");
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `${state.selectedCityName} 여행 일정표`, text: fullText });
+          return;
+        } catch (err) {}
+      }
+
+      try {
+        await navigator.clipboard.writeText(fullText);
+        showToast(`📋 일정표가 클립보드에 복사되었습니다!`);
+      } catch (e) {}
+    }
+
+    function switchMode(mode) {
+      state.mode = mode;
+      document.getElementById('view-unplanned').classList.toggle('hidden', mode !== 'unplanned');
+      document.getElementById('view-planned').classList.toggle('hidden', mode !== 'planned');
+      document.getElementById('view-itinerary').classList.add('hidden');
+
+      document.getElementById('tab-unplanned').className = mode === 'unplanned'
+        ? "py-2 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm"
+        : "py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+      document.getElementById('tab-planned').className = mode === 'planned'
+        ? "py-2 text-xs font-semibold rounded-lg transition-all bg-white text-indigo-600 shadow-sm"
+        : "py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+    }
+
+    function selectChip(group, value, btn) {
+      state.unplanned[group] = value;
+      document.querySelectorAll(`.chip-${group}`).forEach(b => {
+        b.className = `chip-${group} py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600`;
+      });
+      btn.className = `chip-${group} py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700`;
+    }
+
+    function recommendDestinations() {
+      const { season, vibe, transport, days } = state.unplanned;
+      const container = document.getElementById('unplanned-results');
+      container.innerHTML = `<p class="text-xs font-bold text-slate-700">🎯 취향 매칭 전국 추천 시·군 (${days - 1}박 ${days}일)</p>`;
+      const candidates = KOREA_REGIONS.filter(r => r.theme === vibe).slice(0, 3);
+      candidates.forEach((r, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-4 rounded-2xl border border-indigo-100 shadow-sm space-y-2 animate-fade";
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">추천 ${idx + 1}위 · ${r.prov}</span>
+            <span class="text-[11px] text-slate-400">${SEASON_META[season].label}</span>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">${r.name}</h3>
+          <p class="text-xs text-slate-600">${r.desc}</p>
+          <button onclick="startUnplannedItinerary('${r.name}', '${r.prov}', '${season}', '${transport}', ${days})" class="w-full py-2.5 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition">
+            ${r.name} 실시간 AI 일정 생성하기 →
+          </button>
+        `;
+        container.appendChild(card);
+      });
+      container.classList.remove('hidden');
+    }
+
+    function startUnplannedItinerary(cityName, prov, season, transport, daysCount) {
+      selectCityByName(cityName, prov);
+      state.currentSeason = season;
+      state.tripDays = daysCount;
+      state.plannedTransport = transport;
+      state.stayMode = 'recommend';
+      state.arrivalHour = 10;
+      state.density = 4;
+      setDurationDays(daysCount);
+      fetchLiveItineraryWithGemini();
+    }
+
+    function toggleRainPlanB() {
+      state.rainMode = !state.rainMode;
+      renderItineraryView();
+    }
+
+    function switchDay(dayNum) {
+      state.activeDay = dayNum;
+      renderItineraryView();
+    }
+
+    function backToEdit() {
+      switchMode('planned');
+    }
+
+    function resetApp() {
+      switchMode('planned');
+      selectCityByName("경주시", "경북");
+      setDurationDays(2);
+      setPlannedTransport('car');
+      setStayMode('single');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3200);
+    }
+  </script>
+</body>
+</html>
