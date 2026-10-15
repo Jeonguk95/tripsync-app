@@ -264,7 +264,7 @@
           </p>
         </div>
 
-        <!-- 4. 숙소 설정 모듈 -->
+        <!-- 4. 숙소 설정 모듈 (복구 완료) -->
         <div class="bg-white p-4 rounded-2xl border-2 border-indigo-500/80 shadow-sm space-y-3">
           <div class="flex justify-between items-center">
             <label class="text-xs font-bold text-slate-900">4️⃣ 🏨 숙소 설정 (<span id="hotel-city-label" class="text-indigo-600">경주시</span> 기준)</label>
@@ -680,9 +680,7 @@
     const CITY_SPOTS_POOL = {
       "경주시": [
         { id: "gj_hn_morning", zoneGroup: "hwangnam", slot: "morning", stayMin: 75, name: "대릉원 천마총 & 미추왕릉 고분군 산책", category: "명소", zone: "황남동(시내권)", indoor: false, desc: "고분군 소나무숲과 돌담길 포토존", travelMin: 10 },
-        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, breakTime: "15:00~17:00", desc: "대표 로컬 미식", travelMin: 10 },
-        { id: "gj_hn_cafe", zoneGroup: "hwangnam", slot: "cafe", stayMin: 60, name: "황리단길 기와 루프탑 한옥카페", category: "카페", zone: "황남동(시내권)", indoor: true, desc: "기와지붕 뷰 디저트", travelMin: 10 },
-        { id: "gj_hn_night", zoneGroup: "hwangnam", slot: "night", stayMin: 70, name: "동궁과 월지 야경 산책", category: "야경", zone: "인왕동(시내권)", indoor: false, desc: "연못 야간 조명 관람", travelMin: 10 }
+        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, breakTime: "15:00~17:00", desc: "대표 로컬 미식", travelMin: 10 }
       ]
     };
 
@@ -692,17 +690,16 @@
       return [
         { id: "g1", zoneGroup: "center", slot: "morning", stayMin: 75, name: `${shortName} 대표 역사읍성 산책로`, category: "명소", zone: `${shortName} 중심권`, indoor: false, desc: "역사 산책 코스", travelMin: 12 },
         { id: "g2", zoneGroup: "center", slot: "lunch", stayMin: 70, name: `${shortName} 향토 한정식 & 로컬 미식`, category: "식당", zone: `${shortName} 중심권`, indoor: true, breakTime: "15:00~17:00", desc: "로컬 맛집", travelMin: 12 },
-        { id: "g3", zoneGroup: "center", slot: "afternoon", stayMin: 75, name: `${shortName} 문화거리 전시관 투어`, category: "명소", zone: `${shortName} 중심권`, indoor: false, desc: "도보 여행지", travelMin: 10 },
+        { id: "g3", zoneGroup: "center", slot: "afternoon", stayMin: 75, name: `${shortName} 문화거리 & 전시관 투어`, category: "명소", zone: `${shortName} 중심권`, indoor: false, desc: "도보 여행지", travelMin: 10 },
         { id: "g4", zoneGroup: "center", slot: "cafe", stayMin: 60, name: `${shortName} 파노라마 루프탑 카페`, category: "카페", zone: `${shortName} 중심권`, indoor: true, desc: "디저트 카페", travelMin: 12 },
-        { id: "g5", zoneGroup: "center", slot: "sunset", stayMin: 60, name: `${shortName} 강변 노을 전망대`, category: "일몰명소", zone: `${shortName} 전망권역`, indoor: false, desc: "일몰 뷰포인트", travelMin: 15 },
-        { id: "g6", zoneGroup: "center", slot: "night", stayMin: 70, name: `${shortName} 야간 조명교 & 야시장`, category: "야경", zone: `${shortName} 중심권`, indoor: false, desc: "야간 산책", travelMin: 12 }
+        { id: "g5", zoneGroup: "center", slot: "sunset", stayMin: 60, name: `${shortName} 강변·해안 노을 전망대`, category: "일몰명소", zone: `${shortName} 전망권역`, indoor: false, desc: "일몰 뷰포인트", travelMin: 15 },
+        { id: "g6", zoneGroup: "center", slot: "night", stayMin: 70, name: `${shortName} 야간 경관조명교 & 야시장`, category: "야경", zone: `${shortName} 중심권`, indoor: false, desc: "야간 산책과 야시장", travelMin: 12 }
       ];
     }
 
     let state = {
       mode: 'planned',
       timeFormat: '24h',
-      geminiModel: 'gemini-2.5-flash',
       isLiveGenerated: false,
       groundingSources: [],
       liveSwapPool: [],
@@ -756,34 +753,36 @@
       return JSON.parse(cleaned);
     }
 
-    // Netlify 서버리스 함수 호출 방식 (API 키 은닉)
+    // Netlify 서버리스 함수 호출
     async function fetchLiveItineraryWithGemini() {
       const overlay = document.getElementById('live-loading-overlay');
       const stepEl = document.getElementById('loading-step');
       const barEl = document.getElementById('loading-bar');
       overlay.classList.remove('hidden');
-      barEl.style.width = "30%";
+      barEl.style.width = "25%";
 
       const trendPref = document.getElementById('search-trend-pref').value;
       const trendInstruction = trendPref === 'new_hot'
-        ? "최근 오픈한 신상 맛집, 신상 카페, 팝업·전시를 최우선으로 포함해 주세요."
-        : (trendPref === 'local_authentic' ? "현지인 노포 맛집과 핵심 명소를 중심으로 구성해 주세요." : "신상 핫플과 주요 명소를 균형 있게 배합해 주세요.");
+        ? "최근 오픈한 신상 맛집, 신상 카페, 팝업·전시를 적극 포함해주세요."
+        : (trendPref === 'local_authentic' ? "현지인 노포 맛집과 핵심 명소를 중심으로 구성해주세요." : "신상 핫플과 주요 명소를 균형 있게 배합해주세요.");
 
       const zoneDefs = getHotelZonesForCity(state.selectedCityName);
       const h1Def = zoneDefs.find(z => z.id === state.hotel1Zone) || zoneDefs[0];
+      const h2Def = zoneDefs.find(z => z.id === state.hotel2Zone) || zoneDefs[0];
+
       const stayDesc = state.stayMode === 'recommend' ? "숙소 미정 (최적 숙박 권역 추천)" : `예약 숙소: ${h1Def.label}`;
       const customPinText = document.getElementById('plan-pin-custom').value.trim();
       const cMeta = COMPANION_META[state.plannedCompanion];
       const pMeta = PURPOSE_META[state.plannedPurpose];
 
-      setTimeout(() => { stepEl.innerText = `🌐 Google 실시간 검색으로 [${state.selectedCityName}] 장소 탐색 중...`; barEl.style.width = "70%"; }, 2500);
+      setTimeout(() => { stepEl.innerText = `🌐 Google 실시간 검색으로 [${state.selectedCityName}] 신상 핫플 탐색 중...`; barEl.style.width = "60%"; }, 2000);
 
       const prompt = `
 당신은 여행 동선 설계 전문가입니다. Google 실시간 검색을 활용해 아래 조건에 맞는 실제 여행 일정을 설계하세요.
 - 여행지: ${state.selectedCityName} (${state.selectedCityProv})
 - 기간: ${state.startDate} ~ ${state.endDate} (총 ${state.tripDays}일)
 - 첫날 도착 시각: ${state.arrivalHour}:00
-- 하루 스팟 수: ${state.density}곳 (각 일자별 배열에 반드시 정확히 ${state.density}개의 장소 객체를 채워서 반환할 것!)
+- 하루 스팟 수: ${state.density}곳
 - 동행: ${cMeta.label} / 목적: ${pMeta.label}
 - 이동수단: ${state.plannedTransport === 'car' ? '자차' : '대중교통'}
 - 숙소: ${stayDesc}
@@ -821,14 +820,10 @@
         const response = await fetch('/.netlify/functions/gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: prompt,
-            model: state.geminiModel,
-            temperature: 0.4
-          })
+          body: JSON.stringify({ prompt: prompt, model: state.geminiModel, temperature: 0.4 })
         });
 
-        if (!response.ok) throw new Error(`서버 오류 (${response.status})`);
+        if (!response.ok) throw new Error(`API 오류 (${response.status})`);
 
         const data = await response.json();
         const candidate = data?.candidates?.[0];
@@ -841,9 +836,9 @@
         let newDaysData = { 1: [], 2: [], 3: [], 4: [] };
         for (let d = 1; d <= state.tripDays; d++) {
           const dayArr = parsed?.days?.[String(d)] || parsed?.days?.[d] || [];
-          let mappedSpots = dayArr.map((item, idx) => ({
+          let mapped = dayArr.map((item, idx) => ({
             id: `live_d${d}_${idx}_${Date.now()}`,
-            time: item.time || `${10 + (idx * 2)}:00`,
+            time: item.time || "14:00",
             stayMin: Number(item.stayMin) || 70,
             name: item.name || "추천 장소",
             category: item.category || "명소",
@@ -858,15 +853,13 @@
             planB: item.planB && item.planB.name ? item.planB : null
           }));
 
-          // 밀도 보장 패치 (최소 지정 개수만큼 채우기)
-          if (mappedSpots.length < state.density) {
-            const fallbackPool = getCandidatePool(state.selectedCityName);
-            while (mappedSpots.length < state.density && fallbackPool.length > 0) {
-              const extra = fallbackPool.shift();
-              mappedSpots.push({ ...extra, id: `extra_${d}_${Date.now()}`, time: `${12 + (mappedSpots.length * 2)}:00` });
+          if (mapped.length < state.density) {
+            const fallback = getCandidatePool(state.selectedCityName);
+            while (mapped.length < state.density && fallback.length > 0) {
+              mapped.push({ ...fallback.shift(), time: `${12 + (mapped.length * 2)}:00` });
             }
           }
-          newDaysData[d] = mappedSpots;
+          newDaysData[d] = mapped;
         }
 
         state.daysData = newDaysData;
