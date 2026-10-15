@@ -107,10 +107,12 @@
             <button onclick="selectChip('transport', 'car', this)" class="chip-transport py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">🚗 자차·렌터카</button>
             <button onclick="selectChip('transport', 'transit', this)" class="chip-transport py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">🚌 대중교통·도보</button>
           </div>
-          <div class="grid grid-cols-3 gap-2">
-            <button onclick="selectChip('days', 2, this)" class="chip-days py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">1박 2일</button>
-            <button onclick="selectChip('days', 3, this)" class="chip-days py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">2박 3일</button>
-            <button onclick="selectChip('days', 4, this)" class="chip-days py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600">3박 4일</button>
+          <div class="grid grid-cols-5 gap-1.5">
+            <button onclick="selectChip('days', 1, this)" class="chip-days py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600">당일치기</button>
+            <button onclick="selectChip('days', 2, this)" class="chip-days py-2 px-1 rounded-xl text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700">1박 2일</button>
+            <button onclick="selectChip('days', 3, this)" class="chip-days py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600">2박 3일</button>
+            <button onclick="selectChip('days', 4, this)" class="chip-days py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600">3박 4일</button>
+            <button onclick="selectChip('days', 5, this)" class="chip-days py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600">4박 5일</button>
           </div>
         </div>
 
@@ -186,16 +188,33 @@
             <button onclick="selectCityByName('전주시', '전북')" class="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 px-2 py-1 rounded-lg whitespace-nowrap font-medium">전주시</button>
           </div>
 
-          <!-- 기간 빠른 설정 버튼 -->
-          <div class="pt-2 border-t border-slate-100">
-            <div class="flex justify-between items-center mb-1.5">
+          <!-- 기간 빠른 설정 버튼 (당일치기 ~ 4박 5일 이상 장기 여행 확장) -->
+          <div class="pt-2 border-t border-slate-100 space-y-2">
+            <div class="flex justify-between items-center">
               <span class="text-[11px] font-bold text-slate-600">🗓️ 여행 기간 선택</span>
               <span id="duration-badge" class="text-[11px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">현재: 1박 2일 (총 2일)</span>
             </div>
-            <div class="grid grid-cols-3 gap-1.5">
-              <button onclick="setDurationDays(2)" id="btn-dur-2" class="py-1.5 rounded-lg text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition">1박 2일</button>
-              <button onclick="setDurationDays(3)" id="btn-dur-3" class="py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">2박 3일</button>
-              <button onclick="setDurationDays(4)" id="btn-dur-4" class="py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">3박 4일</button>
+            <div class="grid grid-cols-5 gap-1">
+              <button onclick="setDurationDays(1)" id="btn-dur-1" class="py-1.5 rounded-lg text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">당일치기</button>
+              <button onclick="setDurationDays(2)" id="btn-dur-2" class="py-1.5 rounded-lg text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition">1박 2일</button>
+              <button onclick="setDurationDays(3)" id="btn-dur-3" class="py-1.5 rounded-lg text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">2박 3일</button>
+              <button onclick="setDurationDays(4)" id="btn-dur-4" class="py-1.5 rounded-lg text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">3박 4일</button>
+              <button onclick="setDurationDays(5)" id="btn-dur-5" class="py-1.5 rounded-lg text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition">4박 5일</button>
+            </div>
+            <div class="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200/80">
+              <span class="text-[11px] font-semibold text-slate-600">🎒 4박 5일 이상 장기 일정 직접 선택</span>
+              <select id="custom-dur-select" onchange="setDurationDays(Number(this.value))" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-indigo-700 focus:outline-none">
+                <option value="1">당일치기 (1일)</option>
+                <option value="2" selected>1박 2일 (2일)</option>
+                <option value="3">2박 3일 (3일)</option>
+                <option value="4">3박 4일 (4일)</option>
+                <option value="5">4박 5일 (5일)</option>
+                <option value="6">5박 6일 (6일)</option>
+                <option value="7">6박 7일 (7일)</option>
+                <option value="8">7박 8일 (8일)</option>
+                <option value="9">8박 9일 (9일)</option>
+                <option value="10">9박 10일 (10일)</option>
+              </select>
             </div>
           </div>
 
@@ -205,7 +224,7 @@
               <input type="date" id="plan-start" value="2026-10-17" onchange="onStartDateInput()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800">
             </div>
             <div>
-              <label class="text-[11px] font-bold text-slate-600 block mb-1">종료일</label>
+              <label class="text-[11px] font-bold text-slate-600 block mb-1">종료일 (달력으로 자유 조정 가능)</label>
               <input type="date" id="plan-end" value="2026-10-18" onchange="onEndDateInput()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800">
             </div>
           </div>
@@ -268,56 +287,63 @@
         <div class="bg-white p-4 rounded-2xl border-2 border-indigo-500/80 shadow-sm space-y-3">
           <div class="flex justify-between items-center">
             <label class="text-xs font-bold text-slate-900">4️⃣ 🏨 숙소 설정 (<span id="hotel-city-label" class="text-indigo-600">경주시</span> 기준)</label>
-            <span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">체크인 시간 자동 계산</span>
+            <span id="hotel- step-badge" class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">체크인 시간 자동 계산</span>
           </div>
 
-          <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
-            <button onclick="setStayMode('recommend')" id="btn-stay-recommend" class="py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight">
-              ✨ 숙소 미정<br><span class="text-[9px] font-normal">(위치 추천받기)</span>
-            </button>
-            <button onclick="setStayMode('single')" id="btn-stay-single" class="py-2 px-1 text-[11px] font-bold rounded-lg bg-white text-indigo-600 shadow-sm transition leading-tight">
-              🏠 예약 완료<br><span class="text-[9px] font-normal">(한 숙소 연박/1박)</span>
-            </button>
-            <button onclick="setStayMode('multi')" id="btn-stay-multi" class="py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight">
-              🚐 예약 완료<br><span class="text-[9px] font-normal">(일자별 숙소 다름)</span>
-            </button>
+          <!-- 당일치기 선택 시 안내 박스 -->
+          <div id="hotel-daytrip-notice" class="hidden bg-slate-100 border border-slate-200 rounded-xl p-3 text-xs text-slate-700">
+            🏃 <b>당일치기 일정 모드:</b> 숙박 없이 하루 동안 알차게 둘러보는 코스로 생성됩니다. (1박 이상 선택 시 숙소 설정이 활성화됩니다)
           </div>
 
-          <div id="hotel-recommend-box" class="hidden bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 space-y-1">
-            <p class="font-bold">💡 AI 최적 숙박 위치(권역) 자동 추천 모드</p>
-            <p class="text-[11px] text-emerald-800 leading-relaxed">
-              마지막 일정이 끝나는 시각과 이동 거리를 계산하여, 가장 편하게 입실할 수 있는 숙박 동네와 예상 체크인 시각을 제안합니다.
-            </p>
-          </div>
-
-          <div id="hotel-input-container" class="space-y-2.5">
-            <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-              <label id="label-hotel-1" class="text-[11px] font-bold text-indigo-900 block">📍 예약한 숙소 권역 선택</label>
-              <select id="hotel-zone-1" onchange="updateHotelPreviewHint()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500">
-              </select>
-              <input 
-                type="text" 
-                id="hotel-name-1" 
-                placeholder="숙소명을 입력하거나 비워두세요 (예: 황리단길 한옥스테이)" 
-                value=""
-                class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
-              />
+          <div id="hotel-controls-wrapper" class="space-y-3">
+            <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
+              <button onclick="setStayMode('recommend')" id="btn-stay-recommend" class="py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight">
+                ✨ 숙소 미정<br><span class="text-[9px] font-normal">(위치 추천받기)</span>
+              </button>
+              <button onclick="setStayMode('single')" id="btn-stay-single" class="py-2 px-1 text-[11px] font-bold rounded-lg bg-white text-indigo-600 shadow-sm transition leading-tight">
+                🏠 예약 완료<br><span class="text-[9px] font-normal">(한 숙소 연박/1박)</span>
+              </button>
+              <button onclick="setStayMode('multi')" id="btn-stay-multi" class="py-2 px-1 text-[11px] font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition leading-tight">
+                🚐 예약 완료<br><span class="text-[9px] font-normal">(일자별 숙소 다름)</span>
+              </button>
             </div>
 
-            <div id="hotel-day2-box" class="hidden space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-              <label class="text-[11px] font-bold text-indigo-900 block">📍 2박차 이후 숙소 권역 선택</label>
-              <select id="hotel-zone-2" onchange="updateHotelPreviewHint()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500">
-              </select>
-              <input 
-                type="text" 
-                id="hotel-name-2" 
-                placeholder="2박차 숙소명을 입력하거나 비워두세요" 
-                value=""
-                class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
-              />
+            <div id="hotel-recommend-box" class="hidden bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-950 space-y-1">
+              <p class="font-bold">💡 AI 최적 숙박 위치(권역) 자동 추천 모드</p>
+              <p class="text-[11px] text-emerald-800 leading-relaxed">
+                마지막 일정이 끝나는 시각과 이동 거리를 계산하여, 가장 편하게 입실할 수 있는 숙박 동네와 예상 체크인 시각을 제안합니다.
+              </p>
             </div>
 
-            <div id="hotel-strategy-hint" class="bg-amber-50/90 border border-amber-200/80 rounded-xl p-2.5 text-[11px] text-amber-950 leading-relaxed">
+            <div id="hotel-input-container" class="space-y-2.5">
+              <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <label id="label-hotel-1" class="text-[11px] font-bold text-indigo-900 block">📍 예약한 숙소 권역 선택</label>
+                <select id="hotel-zone-1" onchange="updateHotelPreviewHint()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500">
+                </select>
+                <input 
+                  type="text" 
+                  id="hotel-name-1" 
+                  placeholder="숙소명을 입력하거나 비워두세요 (예: 황리단길 한옥스테이)" 
+                  value=""
+                  class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div id="hotel-day2-box" class="hidden space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <label class="text-[11px] font-bold text-indigo-900 block">📍 2박차 이후 숙소 권역 선택</label>
+                <select id="hotel-zone-2" onchange="updateHotelPreviewHint()" class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500">
+                </select>
+                <input 
+                  type="text" 
+                  id="hotel-name-2" 
+                  placeholder="2박차 이후 숙소명을 입력하거나 비워두세요" 
+                  value=""
+                  class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div id="hotel-strategy-hint" class="bg-amber-50/90 border border-amber-200/80 rounded-xl p-2.5 text-[11px] text-amber-950 leading-relaxed">
+              </div>
             </div>
           </div>
         </div>
@@ -421,8 +447,8 @@
           <div id="validation-banner" class="hidden rounded-xl p-3 text-xs space-y-1"></div>
         </div>
 
-        <!-- Day 1 ~ Day N 탭 -->
-        <div class="flex gap-1.5" id="day-tabs-container"></div>
+        <!-- Day 1 ~ Day N 탭 (장기 일정 가로 스크롤 지원) -->
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5" id="day-tabs-container"></div>
 
         <!-- 타임라인 리스트 -->
         <div id="timeline-container" class="space-y-3"></div>
@@ -524,8 +550,8 @@
           </div>
 
           <div>
-            <label class="text-[11px] font-bold text-slate-700 block mb-1">📍 장소 이름 (필수)</label>
-            <input type="text" id="custom-spot-name" placeholder="예: 체크인 후 황리단길 루프탑 맥주집, 새로 생긴 카페 등" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800">
+            <label class="text-[11px] font-bold text-slate-700 block mb-1">📍 정확한 단일 장소/가게 이름 (필수)</label>
+            <input type="text" id="custom-spot-name" placeholder="예: 향화정, 스컹크웍스, 동궁과 월지 (단일 상호명 입력)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800">
           </div>
 
           <div class="grid grid-cols-2 gap-2">
@@ -562,7 +588,7 @@
   </div>
 
   <script>
-    // ==================== [날짜·시간 계산 및 12h/24h 포맷팅 유틸리티] ====================
+    // ==================== [날짜·시간 계산 및 지도/예약 검색어 정제 유틸리티] ====================
     function parseLocalDate(dateStr) {
       const [y, m, d] = dateStr.split('-').map(Number);
       return new Date(y, m - 1, d);
@@ -605,18 +631,37 @@
       return byCat[spot.category] || 70;
     }
 
+    // [문제 1 해결] 네이버 지도 앱에서 엉뚱한 가게가 나오지 않도록 단일 상호명/검색어로 정제하는 함수
+    function getCleanPoiQuery(spot, cityName, isPlanBActive) {
+      if (isPlanBActive && spot.planB) {
+        const rawB = spot.planB.mapQuery || spot.planB.name.split('&')[0].replace(/\(.*?\)/g, '').trim();
+        return rawB.includes(cityName.replace(/시|군|광역시/g, '')) ? rawB : `${cityName} ${rawB}`;
+      }
+      if (spot.mapQuery && spot.mapQuery !== "null") {
+        return spot.mapQuery;
+      }
+      // 괄호 안 부연설명이나 '&' 뒤의 서브 장소명을 제거하여 단일 상호명만 추출
+      const cleanSpotName = (spot.name || "").split('&')[0].replace(/\(.*?\)/g, '').trim();
+      const shortCity = cityName.replace(/시|군|광역시/g, '');
+      if (cleanSpotName.includes(shortCity)) {
+        return cleanSpotName;
+      }
+      return `${cityName} ${cleanSpotName}`;
+    }
+
+    // [문제 2 해결] 예약 사이트 연동 데이터 생성 (깨짐 현상 원천 차단 및 정확한 단일 매장명 연동)
     function getReservationData(spot, cityName, isPlanBActive) {
       if (spot.isHotelNode) return null;
       if (spot.resOption === 'no') return null;
 
-      const targetName = isPlanBActive && spot.planB ? spot.planB.name : spot.name;
+      const poiQuery = getCleanPoiQuery(spot, cityName, isPlanBActive);
 
       if (spot.resInfo && !isPlanBActive) {
         return {
           required: spot.resInfo.required,
           badgeText: spot.resInfo.badge || "🎟️ 사전예약·웨이팅 연동",
           btnLabel: spot.resInfo.btnLabel || "🎟️ 예약·웨이팅 ↗",
-          url: spot.resInfo.url || `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' ' + (spot.resInfo.querySuffix || '예약'))}`
+          url: spot.resInfo.url || `https://search.naver.com/search.naver?query=${encodeURIComponent(poiQuery + ' ' + (spot.resInfo.querySuffix || '예약'))}`
         };
       }
 
@@ -625,7 +670,7 @@
           required: true,
           badgeText: "🎟️ 온라인 티켓·사전예매 가능",
           btnLabel: "🎟️ 네이버 티켓·예약 ↗",
-          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' 예약 티켓')}`
+          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(poiQuery + ' 예약 티켓')}`
         };
       }
 
@@ -634,17 +679,17 @@
           required: true,
           badgeText: "🍽️ 스마트웨이팅 · 사전예약 확인",
           btnLabel: "🍽️ 식당 예약·웨이팅 ↗",
-          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' 예약 캐치테이블')}`
+          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(poiQuery + ' 캐치테이블 네이버예약')}`
         };
       }
 
       const ticketKeywords = ["박물관", "전시관", "케이블카", "뮤지엄", "미술관", "수목원", "카멜리아힐", "한림공원", "성산일출봉", "불국사", "대릉원", "천마총", "동궁과 월지", "유등", "숲속의진주", "스카이워크", "루지", "요트", "다원", "전망대", "체험"];
-      if (spot.resOption === 'yes' || ticketKeywords.some(kw => targetName.includes(kw))) {
+      if (spot.resOption === 'yes' || ticketKeywords.some(kw => poiQuery.includes(kw))) {
         return {
           required: true,
           badgeText: "🎟️ 사전예약 · 입장권 예매 연동",
           btnLabel: "🎟️ 사전예약·티켓 예매 ↗",
-          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(cityName + ' ' + targetName + ' 네이버예약 입장권')}`
+          url: `https://search.naver.com/search.naver?query=${encodeURIComponent(poiQuery + ' 네이버예약 입장권')}`
         };
       }
       return null;
@@ -694,7 +739,7 @@
       list.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
     }
 
-    // ==================== [메타데이터 및 오프라인 폴백 DB] ====================
+    // ==================== [메타데이터 및 단일 상호명 기반 내장 DB] ====================
     const COMPANION_META = {
       undecided: { label: "동행 미정", badge: "🤷 동행 미정", tipPrefix: "누구와 가도 만족도가 높은 검증 스팟", hotelType: "접근성 좋은 시내 부티크 호텔 또는 리조트" },
       solo: { label: "혼자 여행", badge: "🧍 나홀로", tipPrefix: "혼자 여유롭게 머물기 좋은 코스", hotelType: "역세권 비즈니스 호텔 또는 중심가 스테이" },
@@ -758,18 +803,19 @@
       ];
     }
 
+    // [문제 1 해결] 내장 DB의 모든 장소를 네이버 지도에서 1:1로 정확히 검색되는 실제 단일 상호명/명소명으로 지정
     const CITY_SPOTS_POOL = {
       "경주시": [
-        { id: "gj_hn_morning", zoneGroup: "hwangnam", slot: "morning", stayMin: 75, tags: ["sightseeing", "healing", "trendy"], name: "대릉원 천마총 & 미추왕릉 고분군 산책", category: "명소", zone: "황남동(시내권)", indoor: false, transitFriendly: true, parkingTip: "대릉원 공영주차장", breakTime: null, closedMon: false, desc: "아침 햇살이 비치는 고분군 소나무숲과 돌담길 대표 포토존", planB: { name: "천마총 실내 고분전시관 & 플레이스씨 갤러리", desc: "실내에서 고분 유물을 관람하고 한옥 갤러리 카페에서 휴식" }, travelMin: 10 },
-        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, tags: ["foodie", "trendy"], name: "황리단길 한옥 한우물회 & 육회비빔밥", category: "식당", zone: "황남동(시내권)", indoor: true, transitFriendly: true, parkingTip: "황남공영주차장", breakTime: "15:00~17:00", closedMon: false, desc: "황리단길 중심가 대표 로컬 미식 (브레이크타임 15~17시 주의)", resInfo: { required: true, badge: "🍽️ 캐치테이블·네이버 원격줄서기 필수", btnLabel: "🍽️ 식당 예약·웨이팅 ↗", querySuffix: "황리단길 육회비빔밥 캐치테이블 예약" }, travelMin: 10 },
-        { id: "gj_hn_afternoon", zoneGroup: "hwangnam", slot: "afternoon", stayMin: 85, tags: ["sightseeing", "healing"], name: "교촌한옥마을 & 국립경주박물관", category: "명소", zone: "교동/인왕동(시내권)", indoor: true, transitFriendly: true, parkingTip: "박물관 무료주차장", breakTime: null, closedMon: true, desc: "최부자댁 고택 골목과 신라 금관·성덕대왕신종 관람", resInfo: { required: true, badge: "🎟️ 특별전·어린이박물관 사전예약", btnLabel: "🎟️ 박물관 관람예약 ↗", querySuffix: "국립경주박물관 사전예약" }, travelMin: 12 },
-        { id: "gj_hn_cafe", zoneGroup: "hwangnam", slot: "cafe", stayMin: 60, tags: ["trendy", "healing"], name: "황리단길 기와 루프탑 한옥카페 & 소품샵 거리", category: "카페", zone: "황남동(시내권)", indoor: true, transitFriendly: true, parkingTip: "인근 공영주차장", breakTime: null, closedMon: false, desc: "한옥 기와지붕 능선이 내려다보이는 카페와 감성 소품샵 투어", travelMin: 10 },
-        { id: "gj_hn_sunset", zoneGroup: "hwangnam", slot: "sunset", stayMin: 65, tags: ["trendy", "sightseeing", "healing"], name: "첨성대 핑크뮬리 꽃단지 & 월정교 강변 일몰", category: "일몰명소", zone: "교동(시내권)", indoor: false, transitFriendly: true, parkingTip: "쪽샘 임시주차장", breakTime: null, closedMon: false, desc: "일몰 골든아워에 맞춰 걷는 첨성대 산책로와 월정교 누각", planB: { name: "국립경주박물관 신라미술관 & 월지관", desc: "비 예보 시 실내에서 천년 신라의 예술품을 감상하는 코스" }, travelMin: 10 },
-        { id: "gj_hn_night", zoneGroup: "hwangnam", slot: "night", stayMin: 70, tags: ["trendy", "sightseeing", "foodie"], name: "동궁과 월지 (안압지 야경 산책)", category: "야경", zone: "인왕동(시내권)", indoor: false, transitFriendly: true, parkingTip: "동궁과월지 전용주차장", breakTime: null, closedMon: false, desc: "연못 위로 비치는 신라 왕궁의 환상적인 야간 조명", resInfo: { required: true, badge: "🎟️ 야간 모바일 입장권 사전예매 가능", btnLabel: "🎟️ 모바일 입장권 예매 ↗", querySuffix: "동궁과월지 입장권 예매" }, planB: { name: "황리단길 한옥 전통주 바 & 심야 다이닝", desc: "빗소리를 들으며 경주 법주와 페어링 안주를 즐기는 실내 바" }, travelMin: 12 },
-        { id: "gj_bm_morning", zoneGroup: "bomun", slot: "morning", stayMin: 70, tags: ["healing", "trendy"], name: "보문호수 수변산책로 & 황룡원 중도타워", category: "명소", zone: "보문단지권", indoor: false, transitFriendly: true, parkingTip: "황룡원 앞 공영주차장", breakTime: null, closedMon: false, desc: "호수 물안개와 9층 목탑 건축미가 어우러진 산책 코스", planB: { name: "우양미술관 (보문단지 현대미술관)", desc: "보문호수 인근에서 쾌적하게 관람하는 대형 실내 미술관" }, travelMin: 15 },
-        { id: "gj_bm_lunch", zoneGroup: "bomun", slot: "lunch", stayMin: 70, tags: ["foodie", "healing"], name: "보문단지 경주 한우 떡갈비 & 맷돌순두부 정식", category: "식당", zone: "보문단지권", indoor: true, transitFriendly: true, parkingTip: "매장 대형주차장", breakTime: "15:00~17:00", closedMon: false, desc: "보문단지 초입 주차가 편리한 향토 한정식 (BT 15~17시)", resInfo: { required: true, badge: "🍽️ 네이버 예약·단체석 예약 가능", btnLabel: "🍽️ 식당 사전예약 ↗", querySuffix: "경주 보문단지 떡갈비 순두부 예약" }, travelMin: 15 },
-        { id: "gj_bg_afternoon", zoneGroup: "bulguksa", slot: "afternoon", stayMin: 80, tags: ["sightseeing", "healing"], name: "불국사 & 다보탑·석가탑 단풍 숲길", category: "명소", zone: "불국사권", indoor: false, transitFriendly: true, parkingTip: "불국사 공영주차장", breakTime: null, closedMon: false, desc: "유네스코 세계유산 불국사 경내와 토함산 단풍 산책로", planB: { name: "경주세계문화엑스포 솔거미술관 & 실내식물원", desc: "아창지 통창 뷰 미술관과 사계절 실내 유리온실" }, travelMin: 18 },
-        { id: "gj_bm_cafe", zoneGroup: "bomun", slot: "cafe", stayMin: 60, tags: ["healing", "trendy", "foodie"], name: "보문호수 파노라마 통창 베이커리 카페", category: "카페", zone: "보문단지권", indoor: true, transitFriendly: true, parkingTip: "전용주차장 완비", breakTime: null, closedMon: false, desc: "호수 윤슬을 바라보며 마시는 스페셜티 티 & 베이커리", travelMin: 15 }
+        { id: "gj_hn_morning", zoneGroup: "hwangnam", slot: "morning", stayMin: 75, tags: ["sightseeing", "healing", "trendy"], name: "대릉원 천마총", mapQuery: "경주 대릉원 천마총", category: "명소", zone: "황남동(시내권)", indoor: false, transitFriendly: true, parkingTip: "대릉원 공영주차장", breakTime: null, closedMon: false, desc: "아침 햇살이 비치는 고분군 소나무숲과 미추왕릉 돌담길 대표 포토존", planB: { name: "천마총 고분전시관", mapQuery: "경주 천마총", desc: "실내에서 고분 유물을 관람하는 코스" }, travelMin: 10 },
+        { id: "gj_hn_lunch", zoneGroup: "hwangnam", slot: "lunch", stayMin: 70, tags: ["foodie", "trendy"], name: "향화정", mapQuery: "경주 황남동 향화정", category: "식당", zone: "황남동(시내권)", indoor: true, transitFriendly: true, parkingTip: "황남공영주차장", breakTime: "15:00~17:00", closedMon: false, desc: "황리단길 대표 한옥 맛집으로 꼬막비빔밥·육회물회가 유명한 핫플 (BT 15~17시)", resInfo: { required: true, badge: "🍽️ 캐치테이블 원격줄서기 지원", btnLabel: "🍽️ 식당 예약·웨이팅 ↗", querySuffix: "캐치테이블 예약" }, travelMin: 10 },
+        { id: "gj_hn_afternoon", zoneGroup: "hwangnam", slot: "afternoon", stayMin: 85, tags: ["sightseeing", "healing"], name: "국립경주박물관", mapQuery: "국립경주박물관", category: "명소", zone: "인왕동(시내권)", indoor: true, transitFriendly: true, parkingTip: "박물관 무료주차장", breakTime: null, closedMon: true, desc: "신라 금관과 성덕대왕신종을 관람하고 인근 교촌한옥마을까지 산책하기 좋은 코스", resInfo: { required: true, badge: "🎟️ 특별전·어린이박물관 사전예약", btnLabel: "🎟️ 박물관 관람예약 ↗", querySuffix: "사전예약" }, travelMin: 12 },
+        { id: "gj_hn_cafe", zoneGroup: "hwangnam", slot: "cafe", stayMin: 60, tags: ["trendy", "healing"], name: "스컹크웍스 황리단길점", mapQuery: "경주 스컹크웍스", category: "카페", zone: "황남동(시내권)", indoor: true, transitFriendly: true, parkingTip: "인근 공영주차장", breakTime: null, closedMon: false, desc: "넓은 마당과 한옥 기와지붕 능선이 아름다운 황리단길 대표 대형 한옥카페", travelMin: 10 },
+        { id: "gj_hn_sunset", zoneGroup: "hwangnam", slot: "sunset", stayMin: 65, tags: ["trendy", "sightseeing", "healing"], name: "첨성대", mapQuery: "경주 첨성대", category: "일몰명소", zone: "교동(시내권)", indoor: false, transitFriendly: true, parkingTip: "쪽샘 임시주차장", breakTime: null, closedMon: false, desc: "일몰 골든아워에 맞춰 걷는 첨성대 꽃단지와 월정교 강변 산책로", planB: { name: "국립경주박물관 신라미술관", mapQuery: "국립경주박물관 신라미술관", desc: "비 예보 시 실내에서 천년 신라의 예술품을 감상하는 코스" }, travelMin: 10 },
+        { id: "gj_hn_night", zoneGroup: "hwangnam", slot: "night", stayMin: 70, tags: ["trendy", "sightseeing", "foodie"], name: "동궁과 월지", mapQuery: "경주 동궁과 월지", category: "야경", zone: "인왕동(시내권)", indoor: false, transitFriendly: true, parkingTip: "동궁과월지 전용주차장", breakTime: null, closedMon: false, desc: "연못 위로 비치는 신라 왕궁의 환상적인 야간 경관 조명", resInfo: { required: true, badge: "🎟️ 야간 모바일 입장권 사전예매 가능", btnLabel: "🎟️ 모바일 입장권 예매 ↗", querySuffix: "입장권 예매" }, planB: { name: "플레이스씨", mapQuery: "경주 플레이스씨", desc: "비 예보 시 실내 복합문화공간 및 한옥 갤러리 관람" }, travelMin: 12 },
+        { id: "gj_bm_morning", zoneGroup: "bomun", slot: "morning", stayMin: 70, tags: ["healing", "trendy"], name: "황룡원", mapQuery: "경주 황룡원", category: "명소", zone: "보문단지권", indoor: false, transitFriendly: true, parkingTip: "황룡원 앞 공영주차장", breakTime: null, closedMon: false, desc: "보문호수 수변산책로와 9층 목탑 건축미가 어우러진 포토 스팟", planB: { name: "우양미술관", mapQuery: "경주 우양미술관", desc: "보문호수 인근에서 쾌적하게 관람하는 대형 실내 현대미술관" }, travelMin: 15 },
+        { id: "gj_bm_lunch", zoneGroup: "bomun", slot: "lunch", stayMin: 70, tags: ["foodie", "healing"], name: "함양집 보문점", mapQuery: "경주 함양집 보문점", category: "식당", zone: "보문단지권", indoor: true, transitFriendly: true, parkingTip: "매장 전용주차장", breakTime: "15:00~17:00", closedMon: false, desc: "전통 한우물회와 불고기 정식으로 유명한 보문단지 초입 대표 맛집 (BT 15~17시)", resInfo: { required: true, badge: "🍽️ 스마트웨이팅·예약 확인", btnLabel: "🍽️ 식당 사전예약 ↗", querySuffix: "예약" }, travelMin: 15 },
+        { id: "gj_bg_afternoon", zoneGroup: "bulguksa", slot: "afternoon", stayMin: 80, tags: ["sightseeing", "healing"], name: "불국사", mapQuery: "경주 불국사", category: "명소", zone: "불국사권", indoor: false, transitFriendly: true, parkingTip: "불국사 공영주차장", breakTime: null, closedMon: false, desc: "유네스코 세계유산 불국사 다보탑·석가탑과 토함산 산책로", planB: { name: "솔거미술관", mapQuery: "경주 솔거미술관", desc: "경주엑스포대공원 내 아창지 통창 뷰 실내 미술관" }, travelMin: 18 },
+        { id: "gj_bm_cafe", zoneGroup: "bomun", slot: "cafe", stayMin: 60, tags: ["healing", "trendy", "foodie"], name: "아덴", mapQuery: "경주 보문단지 카페 아덴", category: "카페", zone: "보문단지권", indoor: true, transitFriendly: true, parkingTip: "전용주차장 완비", breakTime: null, closedMon: false, desc: "보문호수 윤슬을 파노라마 통창으로 바라보며 마시는 베이커리 한옥 카페", travelMin: 15 }
       ]
     };
 
@@ -781,16 +827,16 @@
       const zResort = (zones[1] || zones[0]).id;
 
       return [
-        { id: "g1", zoneGroup: zCenter, slot: "morning", stayMin: 75, tags: ["sightseeing", "healing"], name: `${shortName} 대표 역사읍성 · 고택 산책로`, category: "명소", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "공영주차장 이용", breakTime: null, closedMon: false, desc: `오전에 둘러보기 좋은 ${cityName}의 상징적인 역사 산책 코스`, planB: { name: `${shortName} 국립·시립박물관`, desc: `실내에서 지역의 역사와 문화를 관람하는 코스` }, travelMin: 12 },
-        { id: "g2", zoneGroup: zCenter, slot: "lunch", stayMin: 70, tags: ["foodie"], name: `${shortName} 중심가 대표 향토 한정식 & 로컬 미식`, category: "식당", zone: `${shortName} 중심권`, indoor: true, transitFriendly: true, parkingTip: "인근 공영주차장", breakTime: "15:00~17:00", closedMon: false, desc: `${cityName} 현지인들이 찾는 대표 로컬 맛집 (브레이크타임 15~17시 주의)`, resInfo: { required: true, badge: "🍽️ 네이버 예약·스마트웨이팅 가능", btnLabel: "🍽️ 식당 예약·웨이팅 ↗", querySuffix: "맛집 네이버예약" }, travelMin: 12 },
-        { id: "g3", zoneGroup: zCenter, slot: "afternoon", stayMin: 75, tags: ["trendy", "sightseeing"], name: `${shortName} 감성 골목 & 문화전시관 투어`, category: "명소", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "문화거리 주차장", breakTime: null, closedMon: false, desc: `독립서점과 로컬 소품샵, 전시관이 어우러진 도보 여행지`, planB: { name: `${shortName} 시립미술관 & 복합문화공간`, desc: `비 예보 시 쾌적하게 즐기는 실내 전시관` }, travelMin: 10 },
-        { id: "g4", zoneGroup: zCenter, slot: "cafe", stayMin: 60, tags: ["trendy", "healing", "foodie"], name: `${shortName} 파노라마 루프탑 로스터리 카페`, category: "카페", zone: `${shortName} 중심권`, indoor: true, transitFriendly: true, parkingTip: "카페 전용주차장", breakTime: null, closedMon: false, desc: `${shortName} 시내와 자연 풍경이 한눈에 들어오는 시그니처 디저트 카페`, travelMin: 12 },
-        { id: "g5", zoneGroup: zCenter, slot: "sunset", stayMin: 60, tags: ["healing", "trendy"], name: `${shortName} 강변·해안 노을 전망대`, category: "일몰명소", zone: `${shortName} 전망권역`, indoor: false, transitFriendly: true, parkingTip: "수변공원 주차장", breakTime: null, closedMon: false, desc: `일몰 골든아워에 맞춰 붉게 물드는 하늘을 감상하는 뷰포인트`, travelMin: 15 },
-        { id: "g6", zoneGroup: zCenter, slot: "night", stayMin: 70, tags: ["trendy", "foodie", "sightseeing"], name: `${shortName} 야간 경관조명교 & 중앙 야시장`, category: "야경", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "중앙시장 공영주차장", breakTime: null, closedMon: false, desc: `화려한 야간 조명 산책과 로컬 야시장 먹거리 투어`, travelMin: 12 },
-        { id: "g7", zoneGroup: zResort, slot: "morning", stayMin: 75, tags: ["healing"], name: `${shortName} 수변공원 데크길 & 자연휴양림`, category: "명소", zone: `${shortName} 휴양권역`, indoor: false, transitFriendly: true, parkingTip: "휴양림 주차장", breakTime: null, closedMon: false, desc: `아침 피톤치드를 마시며 걷는 ${cityName} 대표 숲·수변 산책로`, travelMin: 18 },
-        { id: "g8", zoneGroup: zResort, slot: "lunch", stayMin: 70, tags: ["foodie"], name: `${shortName} 바닷가·호수뷰 로컬 별미 한상`, category: "식당", zone: `${shortName} 휴양권역`, indoor: true, transitFriendly: true, parkingTip: "매장 대형주차장", breakTime: "15:00~17:00", closedMon: false, desc: `탁 트인 자연 풍경과 함께 즐기는 점심 특선`, resInfo: { required: true, badge: "🍽️ 창가석 사전예약 권장", btnLabel: "🍽️ 식당 사전예약 ↗", querySuffix: "맛집 예약" }, travelMin: 15 },
-        { id: "g9", zoneGroup: zResort, slot: "afternoon", stayMin: 80, tags: ["sightseeing", "trendy"], name: `${shortName} 케이블카 & 스카이워크 전망대`, category: "명소", zone: `${shortName} 휴양권역`, indoor: false, transitFriendly: true, parkingTip: "케이블카 주차장", breakTime: null, closedMon: false, desc: `${cityName}의 산세와 물길을 발아래로 조망하는 랜드마크 코스`, resInfo: { required: true, badge: "🎟️ 케이블카·전망대 온라인 사전예매", btnLabel: "🎟️ 탑승권 예매 ↗", querySuffix: "케이블카 네이버예약" }, travelMin: 15 },
-        { id: "g10", zoneGroup: zResort, slot: "cafe", stayMin: 60, tags: ["healing", "trendy"], name: `${shortName} 수변 통창 베이커리 & 티하우스`, category: "카페", zone: `${shortName} 휴양권역`, indoor: true, transitFriendly: false, parkingTip: "전용 주차장 완비", breakTime: null, closedMon: false, desc: `물결치는 윤슬을 바라보며 여유롭게 쉬어가는 대형 카페`, travelMin: 15 }
+        { id: "g1", zoneGroup: zCenter, slot: "morning", stayMin: 75, tags: ["sightseeing", "healing"], name: `${shortName} 대표 읍성공원`, mapQuery: `${cityName} 명소`, category: "명소", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "공영주차장 이용", breakTime: null, closedMon: false, desc: `오전에 둘러보기 좋은 ${cityName}의 상징적인 역사 산책 코스`, planB: { name: `${shortName} 박물관`, mapQuery: `${cityName} 박물관`, desc: `실내에서 지역의 역사와 문화를 관람하는 코스` }, travelMin: 12 },
+        { id: "g2", zoneGroup: zCenter, slot: "lunch", stayMin: 70, tags: ["foodie"], name: `${shortName} 향토한정식 본점`, mapQuery: `${cityName} 한정식 맛집`, category: "식당", zone: `${shortName} 중심권`, indoor: true, transitFriendly: true, parkingTip: "인근 공영주차장", breakTime: "15:00~17:00", closedMon: false, desc: `${cityName} 현지인들이 찾는 대표 로컬 맛집 (브레이크타임 15~17시 주의)`, resInfo: { required: true, badge: "🍽️ 네이버 예약·스마트웨이팅 가능", btnLabel: "🍽️ 식당 예약·웨이팅 ↗", querySuffix: "네이버예약" }, travelMin: 12 },
+        { id: "g3", zoneGroup: zCenter, slot: "afternoon", stayMin: 75, tags: ["trendy", "sightseeing"], name: `${shortName} 문화예술회관`, mapQuery: `${cityName} 전시관`, category: "명소", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "문화거리 주차장", breakTime: null, closedMon: false, desc: `독립서점과 로컬 소품샵, 전시관이 어우러진 도보 여행지`, planB: { name: `${shortName} 시립미술관`, mapQuery: `${cityName} 미술관`, desc: `비 예보 시 쾌적하게 즐기는 실내 전시관` }, travelMin: 10 },
+        { id: "g4", zoneGroup: zCenter, slot: "cafe", stayMin: 60, tags: ["trendy", "healing", "foodie"], name: `${shortName} 로스터리카페`, mapQuery: `${cityName} 대형카페`, category: "카페", zone: `${shortName} 중심권`, indoor: true, transitFriendly: true, parkingTip: "카페 전용주차장", breakTime: null, closedMon: false, desc: `${shortName} 시내와 자연 풍경이 한눈에 들어오는 시그니처 디저트 카페`, travelMin: 12 },
+        { id: "g5", zoneGroup: zCenter, slot: "sunset", stayMin: 60, tags: ["healing", "trendy"], name: `${shortName} 노을전망대`, mapQuery: `${cityName} 전망대`, category: "일몰명소", zone: `${shortName} 전망권역`, indoor: false, transitFriendly: true, parkingTip: "수변공원 주차장", breakTime: null, closedMon: false, desc: `일몰 골든아워에 맞춰 붉게 물드는 하늘을 감상하는 뷰포인트`, travelMin: 15 },
+        { id: "g6", zoneGroup: zCenter, slot: "night", stayMin: 70, tags: ["trendy", "foodie", "sightseeing"], name: `${shortName} 중앙야시장`, mapQuery: `${cityName} 중앙시장`, category: "야경", zone: `${shortName} 중심권`, indoor: false, transitFriendly: true, parkingTip: "중앙시장 공영주차장", breakTime: null, closedMon: false, desc: `화려한 야간 조명 산책과 로컬 야시장 먹거리 투어`, travelMin: 12 },
+        { id: "g7", zoneGroup: zResort, slot: "morning", stayMin: 75, tags: ["healing"], name: `${shortName} 수변생태공원`, mapQuery: `${cityName} 생태공원`, category: "명소", zone: `${shortName} 휴양권역`, indoor: false, transitFriendly: true, parkingTip: "공원 주차장", breakTime: null, closedMon: false, desc: `아침 피톤치드를 마시며 걷는 ${cityName} 대표 숲·수변 산책로`, travelMin: 18 },
+        { id: "g8", zoneGroup: zResort, slot: "lunch", stayMin: 70, tags: ["foodie"], name: `${shortName} 수변가든`, mapQuery: `${cityName} 로컬맛집`, category: "식당", zone: `${shortName} 휴양권역`, indoor: true, transitFriendly: true, parkingTip: "매장 대형주차장", breakTime: "15:00~17:00", closedMon: false, desc: `탁 트인 자연 풍경과 함께 즐기는 점심 특선`, resInfo: { required: true, badge: "🍽️ 창가석 사전예약 권장", btnLabel: "🍽️ 식당 사전예약 ↗", querySuffix: "예약" }, travelMin: 15 },
+        { id: "g9", zoneGroup: zResort, slot: "afternoon", stayMin: 80, tags: ["sightseeing", "trendy"], name: `${shortName} 스카이워크`, mapQuery: `${cityName} 스카이워크`, category: "명소", zone: `${shortName} 휴양권역`, indoor: false, transitFriendly: true, parkingTip: "전용 주차장", breakTime: null, closedMon: false, desc: `${cityName}의 산세와 물길을 발아래로 조망하는 랜드마크 코스`, resInfo: { required: true, badge: "🎟️ 온라인 사전예매 가능", btnLabel: "🎟️ 탑승권 예매 ↗", querySuffix: "네이버예약" }, travelMin: 15 },
+        { id: "g10", zoneGroup: zResort, slot: "cafe", stayMin: 60, tags: ["healing", "trendy"], name: `${shortName} 레이크베이커리`, mapQuery: `${cityName} 베이커리카페`, category: "카페", zone: `${shortName} 휴양권역`, indoor: true, transitFriendly: false, parkingTip: "전용 주차장 완비", breakTime: null, closedMon: false, desc: `물결치는 윤슬을 바라보며 여유롭게 쉬어가는 대형 카페`, travelMin: 15 }
       ];
     }
 
@@ -881,25 +927,29 @@
       const h1Def = zoneDefs.find(z => z.id === state.hotel1Zone) || zoneDefs[0];
       const h2Def = zoneDefs.find(z => z.id === state.hotel2Zone) || zoneDefs[0];
 
-      const stayDesc = state.stayMode === 'recommend'
-        ? "숙소 미정 (각 일자 동선에 맞는 최적의 숙박 동네/권역을 추천해 줄 것)"
-        : (state.stayMode === 'single'
-            ? `예약 숙소 거점: ${h1Def.label} (${state.hotel1Name || h1Def.shortZone})`
-            : `1박차 숙소: ${h1Def.shortZone}, 2박차 이후 숙소: ${h2Def.shortZone}`);
+      const stayDesc = state.tripDays === 1
+        ? "당일치기 여행 (숙박 없음)"
+        : (state.stayMode === 'recommend'
+            ? "숙소 미정 (각 일자 동선에 맞는 최적의 숙박 동네/권역을 추천해 줄 것)"
+            : (state.stayMode === 'single'
+                ? `예약 숙소 거점: ${h1Def.label} (${state.hotel1Name || h1Def.shortZone})`
+                : `1박차 숙소: ${h1Def.shortZone}, 2박차 이후 숙소: ${h2Def.shortZone}`));
 
       const customPinText = document.getElementById('plan-pin-custom').value.trim();
       const cMeta = COMPANION_META[state.plannedCompanion];
       const pMeta = PURPOSE_META[state.plannedPurpose];
 
       const stepTimer1 = setTimeout(() => {
-        stepEl.innerText = `🌐 Google 실시간 검색으로 [${state.selectedCityName}] 신상 맛집·카페 탐색 중...`;
+        stepEl.innerText = `🌐 Google 실시간 검색으로 [${state.selectedCityName}] 실제 단일 상호명 탐색 중...`;
         barEl.style.width = "60%";
       }, 2200);
 
       const stepTimer2 = setTimeout(() => {
-        stepEl.innerText = `🧭 숙소 거점 동선 최적화 및 브레이크타임·예약 정보 매칭 중...`;
+        stepEl.innerText = `🧭 동선 최적화 및 네이버 지도·예약 검색어 매칭 중...`;
         barEl.style.width = "88%";
       }, 5000);
+
+      const durationLabel = state.tripDays === 1 ? "당일치기 (총 1일)" : `총 ${state.tripDays}일 (${state.tripDays - 1}박 ${state.tripDays}일)`;
 
       const prompt = `
 당신은 대한민국 최고 수준의 실시간 여행 동선 설계 전문가입니다.
@@ -907,20 +957,21 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
 
 [여행 조건]
 - 여행지: ${state.selectedCityName} (${state.selectedCityProv})
-- 여행 기간: ${state.startDate} ~ ${state.endDate} (총 ${state.tripDays}일, ${state.tripDays - 1}박)
+- 여행 기간: ${state.startDate} ~ ${state.endDate} (${durationLabel}) -> 반드시 "days" 객체에 "1"부터 "${state.tripDays}"까지 모든 날짜의 일정을 빠짐없이 생성하세요!
 - 첫날 도착 시각: ${state.arrivalHour}:00 (1일차 첫 일정은 반드시 ${String(state.arrivalHour).padStart(2, '0')}:00에 시작할 것!)
-- 하루 희망 스팟 수(숙소 제외): 하루 ${state.density}곳 내외
+- 하루 희망 스팟 수(숙소 제외): 하루 ${state.density}곳
 - 동행자: ${cMeta.label} / 여행 목적: ${pMeta.label}
 - 이동 수단: ${state.plannedTransport === 'car' ? '자차·렌터카' : '대중교통·도보'}
 - 숙소 조건: ${stayDesc}
 - 필수 포함 희망 장소: ${customPinText || '없음'}
 - 특별 지침: ${trendInstruction}
 
-[필수 준수 규칙]
+[필수 준수 규칙 - 매우 중요]
 1. 절대로 식당 2곳이나 카페 2곳을 연속으로 배치하지 마세요! 하루 일정은 반드시 시간 흐름에 따라 [오전 명소(10시 도착 시)] -> [점심 식당(12:00)] -> [오후 명소/전시] -> [카페/디저트] -> [일몰 명소] -> [야경/저녁] 순서로 자연스럽게 이어져야 합니다.
-2. 모든 장소는 ${state.selectedCityName}에 실제로 존재하는 상호명/명소명이어야 합니다. 새로 생긴 신상 카페나 맛집이라면 isNewHot을 true로 설정하고, 설명(desc)에 어떤 메뉴나 뷰로 유명한지 구체적으로 적어주세요.
-3. 우천 시 대체할 수 있는 실제 실내 장소(planB)와 주차 팁(parkingTip), 식당 브레이크타임(breakTime, 예: "15:00~17:00" 또는 없으면 null)을 포함하세요.
-4. 출력은 마크다운 설명 없이 오직 아래 JSON 스키마 형식으로만 응답하세요.
+2. [단일 상호명 원칙 - 지도 검색 오류 방지] "name" 필드에는 절대로 두 장소를 '&'로 묶거나(예: '교촌한옥마을 & 국립경주박물관' 금지), '황리단길 루프탑 카페'처럼 추상적인 수식어를 넣지 마세요! 네이버 지도 앱에서 검색했을 때 딱 하나의 핀으로 바로 나오는 **실제 특정 가게 상호명 1개** 또는 **공식 단일 관광지명 1개**(예: "향화정", "스컹크웍스 황리단길점", "국립경주박물관", "동궁과 월지")만 단독으로 기입하세요. 메뉴나 연계 코스 설명은 모두 "desc"에 적으세요.
+3. "mapQuery" 필드에는 네이버 지도에서 타 지역 동명이점과 혼동되지 않도록 지역명+상호명을 결합한 정확한 검색어(예: "경주 황남동 향화정", "국립경주박물관")를 기입하세요.
+4. 우천 시 대체할 수 있는 실제 실내 장소(planB)와 주차 팁(parkingTip), 식당 브레이크타임(breakTime, 예: "15:00~17:00" 또는 없으면 null)을 포함하세요.
+5. 출력은 마크다운 설명 없이 오직 아래 JSON 스키마 형식으로만 응답하세요.
 
 {
   "routeSummary": "전체 동선 및 숙소·신상 핫플 구성 핵심 요약 (2문장)",
@@ -929,7 +980,8 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
       {
         "time": "12:00",
         "stayMin": 70,
-        "name": "실제 매장 또는 명소 이름",
+        "name": "정확한 단일 매장명 또는 단일 명소명",
+        "mapQuery": "시군명 + 단일 매장명 (네이버 지도 검색용)",
         "category": "식당 | 명소 | 카페 | 일몰명소 | 야경",
         "zone": "구체적인 동/읍/면 이름",
         "indoor": true,
@@ -937,9 +989,10 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
         "breakTime": "15:00~17:00",
         "parkingTip": "전용주차장 또는 인근 공영주차장 이름",
         "travelMin": 15,
-        "desc": "대표 메뉴, 특징, 최근 오픈/인기 포인트 등 구체적 설명",
+        "desc": "대표 메뉴, 특징, 인근 연계 산책 포인트 등 구체적 설명",
         "planB": {
-          "name": "우천 시 대체할 인근 실제 실내 명소/복합문화공간 이름",
+          "name": "우천 시 대체할 인근 실제 단일 실내 명소 이름",
+          "mapQuery": "시군명 + 실내 명소 이름",
           "desc": "실내 대안 장소 설명"
         }
       }
@@ -957,7 +1010,6 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
 `;
 
       try {
-        // Netlify 서버리스 함수 호출 (API 키는 서버 환경변수에서 자동 주입됨)
         const response = await fetch('/.netlify/functions/gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -987,14 +1039,15 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
           .map(c => ({ title: c.web.title || "웹 검색 출처", uri: c.web.uri }))
           .slice(0, 5);
 
-        let newDaysData = { 1: [], 2: [], 3: [], 4: [] };
+        let newDaysData = {};
         for (let d = 1; d <= state.tripDays; d++) {
           const dayArr = parsed?.days?.[String(d)] || parsed?.days?.[d] || [];
           newDaysData[d] = dayArr.map((item, idx) => ({
             id: `live_d${d}_${idx}_${Date.now()}`,
             time: item.time || "14:00",
             stayMin: Number(item.stayMin) || 70,
-            name: item.name || "추천 장소",
+            name: (item.name || "추천 장소").split('&')[0].trim(),
+            mapQuery: item.mapQuery || null,
             category: item.category || "명소",
             zone: item.zone || state.selectedCityName,
             indoor: Boolean(item.indoor),
@@ -1011,6 +1064,7 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
         state.daysData = newDaysData;
         state.isLiveGenerated = true;
 
+        // 1박 이상일 때만 각 박차별 숙소 노드 추가 (당일치기는 제외)
         for (let d = 1; d < state.tripDays; d++) {
           if (state.stayMode === 'recommend') {
             const aiRec = (parsed.recommendedHotels || []).find(h => Number(h.night) === d) || {};
@@ -1059,7 +1113,7 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
           recalculateHotelCheckinTime(d);
         }
 
-        state.routeExplanation = `🌐 <b>[AI 실시간 구글 검색 반영 완료]</b> ${parsed.routeSummary || `${state.selectedCityName}의 최신 오픈 맛집·카페와 핵심 명소를 실시간으로 검색해 구성했습니다.`}`;
+        state.routeExplanation = `🌐 <b>[AI 실시간 구글 검색 반영 완료]</b> ${parsed.routeSummary || `${state.selectedCityName}의 최신 오픈 맛집·카페와 핵심 명소를 단일 상호명으로 정확히 매칭해 구성했습니다.`}`;
         state.activeDay = 1;
 
         overlay.classList.add('hidden');
@@ -1079,7 +1133,7 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
       }
     }
 
-    // 교체 모달 내 실시간 AI 신상 후보 검색 (서버리스 함수 연동)
+    // 교체 모달 내 실시간 AI 신상 후보 검색 (단일 상호명 원칙 적용)
     async function searchLiveCandidatesForSwap() {
       const currentSpot = state.daysData[state.activeDay][state.swapTargetIndex];
       const btn = document.getElementById('btn-live-swap-search');
@@ -1091,11 +1145,12 @@ Google 실시간 검색(google_search)을 활용하여 아래 조건에 맞는 �
 
       const prompt = `
 Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot.zone || ''}] 인근에서 [${currentSpot.name}] 대신 방문하기 좋은 실제 최신/신상 [${targetCat}] 후보 4곳을 추천해 주세요.
-특히 최근 새로 생겼거나 현지에서 평점이 높은 곳으로 선정하고, 아래 JSON 형식으로만 응답하세요.
+"name"에는 절대 두 장소를 묶지 말고 네이버 지도에서 바로 검색되는 단일 상호명/명소명 1개만 기입하세요. 아래 JSON 형식으로만 응답하세요.
 {
   "candidates": [
     {
-      "name": "실제 상호명",
+      "name": "실제 단일 상호명",
+      "mapQuery": "${state.selectedCityName} 실제 단일 상호명",
       "category": "${targetCat}",
       "zone": "구체적 동/읍/면",
       "stayMin": 70,
@@ -1127,7 +1182,8 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
         const newCandidates = (parsed.candidates || []).map((c, i) => ({
           id: `live_swap_${Date.now()}_${i}`,
-          name: c.name,
+          name: (c.name || "추천 장소").split('&')[0].trim(),
+          mapQuery: c.mapQuery || null,
           category: c.category || targetCat,
           zone: c.zone || state.selectedCityName,
           stayMin: Number(c.stayMin) || 65,
@@ -1215,13 +1271,15 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       updateHotelPreviewHint();
     }
 
+    // [문제 3 해결] 당일치기(1일)부터 9박 10일(10일) 이상까지 자유롭게 기간 설정 지원
     function setDurationDays(daysCount) {
-      state.tripDays = daysCount;
+      const validDays = Math.max(1, Math.min(14, Number(daysCount) || 2));
+      state.tripDays = validDays;
       const startStr = document.getElementById('plan-start').value || '2026-10-17';
       const sDate = parseLocalDate(startStr);
-      const eDate = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + (daysCount - 1));
+      const eDate = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + (validDays - 1));
       document.getElementById('plan-end').value = formatLocalDate(eDate);
-      updateDurationUI(daysCount);
+      updateDurationUI(validDays);
     }
 
     function onStartDateInput() {
@@ -1241,14 +1299,14 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       const eDate = parseLocalDate(eVal);
       let diffDays = Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1;
 
-      if (diffDays < 2) {
-        diffDays = 2;
-        const fixedEnd = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + 1);
+      if (diffDays < 1) {
+        diffDays = 1;
+        document.getElementById('plan-end').value = formatLocalDate(sDate);
+      } else if (diffDays > 10) {
+        diffDays = 10;
+        const fixedEnd = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + 9);
         document.getElementById('plan-end').value = formatLocalDate(fixedEnd);
-      } else if (diffDays > 4) {
-        diffDays = 4;
-        const fixedEnd = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + 3);
-        document.getElementById('plan-end').value = formatLocalDate(fixedEnd);
+        showToast("💡 일정은 최대 9박 10일(10일)까지 설정 가능합니다.");
       }
       state.tripDays = diffDays;
       updateDurationUI(diffDays);
@@ -1256,15 +1314,35 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
     function updateDurationUI(daysCount) {
       const nights = daysCount - 1;
-      document.getElementById('duration-badge').innerText = `현재: ${nights}박 ${daysCount}일 (총 ${daysCount}일 일정)`;
-      [2, 3, 4].forEach(d => {
+      const labelText = daysCount === 1
+        ? `현재: 당일치기 (총 1일 일정)`
+        : `현재: ${nights}박 ${daysCount}일 (총 ${daysCount}일 일정)`;
+      document.getElementById('duration-badge').innerText = labelText;
+
+      [1, 2, 3, 4, 5].forEach(d => {
         const btn = document.getElementById(`btn-dur-${d}`);
         if (btn) {
           btn.className = d === daysCount
-            ? "py-1.5 rounded-lg text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition"
-            : "py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition";
+            ? "py-1.5 rounded-lg text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700 transition"
+            : "py-1.5 rounded-lg text-[11px] font-medium border border-slate-200 text-slate-600 hover:border-indigo-300 transition";
         }
       });
+
+      const selectEl = document.getElementById('custom-dur-select');
+      if (selectEl && daysCount >= 1 && daysCount <= 10) {
+        selectEl.value = String(daysCount);
+      }
+
+      // 당일치기일 때는 숙소 입력창 대신 안내 배너 표시
+      const daytripNotice = document.getElementById('hotel-daytrip-notice');
+      const hotelControls = document.getElementById('hotel-controls-wrapper');
+      if (daysCount === 1) {
+        daytripNotice.classList.remove('hidden');
+        hotelControls.classList.add('hidden');
+      } else {
+        daytripNotice.classList.add('hidden');
+        hotelControls.classList.remove('hidden');
+      }
     }
 
     function onArrivalChange() {
@@ -1323,7 +1401,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       const hInput1 = document.getElementById('hotel-name-1');
       const hInput2 = document.getElementById('hotel-name-2');
       hInput1.placeholder = `${cityName} 예약 숙소명 입력 (비워두면 권역명으로 표시)`;
-      hInput2.placeholder = `${cityName} 2박차 숙소명 입력`;
+      hInput2.placeholder = `${cityName} 2박차 이후 숙소명 입력`;
       hInput1.value = "";
       hInput2.value = "";
     }
@@ -1437,7 +1515,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       return notes.join(" · ");
     }
 
-    // 일정 생성 메인 엔트리 (항상 서버리스 실시간 검색 우선 호출)
+    // 일정 생성 메인 엔트리 (당일치기 ~ 장기 일정 모두 지원)
     function generateItineraryFromPlanned() {
       const rawCity = document.getElementById('city-search-input').value.trim();
       if (rawCity) {
@@ -1458,9 +1536,9 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
       const sDate = parseLocalDate(state.startDate);
       const eDate = parseLocalDate(state.endDate);
-      state.tripDays = Math.max(2, Math.min(4, Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1));
+      state.tripDays = Math.max(1, Math.min(10, Math.round((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1));
 
-      if (state.stayMode !== 'recommend') {
+      if (state.tripDays > 1 && state.stayMode !== 'recommend') {
         state.hotel1Zone = document.getElementById('hotel-zone-1').value;
         state.hotel1Name = document.getElementById('hotel-name-1').value.trim();
         state.hotel2Zone = state.stayMode === 'multi' ? document.getElementById('hotel-zone-2').value : state.hotel1Zone;
@@ -1488,7 +1566,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       const pinnedSpot = state.pinnedSpotId !== 'none' ? pool.find(s => s.id === state.pinnedSpotId) : null;
       if (pinnedSpot) usedIds.add(pinnedSpot.id);
 
-      function pickOneForSlot(slotType, preferredZoneId, fallbackAllowed = true) {
+      function pickOneForSlot(slotType, preferredZoneId, dayNum = 1) {
         if (pinnedSpot && !pinnedSpot._placed && pinnedSpot.slot === slotType) {
           pinnedSpot._placed = true;
           return JSON.parse(JSON.stringify(pinnedSpot));
@@ -1496,30 +1574,31 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
         let candidate = pool.find(s => !usedIds.has(s.id) && s.slot === slotType && (!preferredZoneId || s.zoneGroup === preferredZoneId));
         if (!candidate) candidate = pool.find(s => !usedIds.has(s.id) && s.slot === slotType);
-        if (!candidate && fallbackAllowed) {
+        if (!candidate) {
           candidate = pool.find(s => !usedIds.has(s.id) && (slotType === 'lunch' ? s.category === '식당' : s.category !== '식당'));
         }
         if (!candidate) {
           const shortCity = state.selectedCityName.replace(/시|군|광역시/g, "");
           const slotLabels = {
-            morning: { name: `${shortCity} 아침 산책 명소 & 수변공원`, cat: "명소", indoor: false, stayMin: 75 },
-            lunch: { name: `${shortCity} 로컬 맛집 점심 특선`, cat: "식당", indoor: true, bt: "15:00~17:00", stayMin: 70 },
-            afternoon: { name: `${shortCity} 문화거리 & 전시관 투어`, cat: "명소", indoor: true, stayMin: 75 },
-            cafe: { name: `${shortCity} 뷰포인트 디저트 카페`, cat: "카페", indoor: true, stayMin: 60 },
-            sunset: { name: `${shortCity} 일몰 노을 전망대`, cat: "일몰명소", indoor: false, stayMin: 60 },
-            night: { name: `${shortCity} 야간 경관 산책 & 야시장`, cat: "야경", indoor: false, stayMin: 70 }
+            morning: { name: `${shortCity} 수변공원`, mapQuery: `${state.selectedCityName} 공원`, cat: "명소", indoor: false, stayMin: 75 },
+            lunch: { name: `${shortCity} 로컬한정식`, mapQuery: `${state.selectedCityName} 맛집`, cat: "식당", indoor: true, bt: "15:00~17:00", stayMin: 70 },
+            afternoon: { name: `${shortCity} 박물관`, mapQuery: `${state.selectedCityName} 박물관`, cat: "명소", indoor: true, stayMin: 75 },
+            cafe: { name: `${shortCity} 로스터리카페`, mapQuery: `${state.selectedCityName} 카페`, cat: "카페", indoor: true, stayMin: 60 },
+            sunset: { name: `${shortCity} 노을전망대`, mapQuery: `${state.selectedCityName} 전망대`, cat: "일몰명소", indoor: false, stayMin: 60 },
+            night: { name: `${shortCity} 야경광장`, mapQuery: `${state.selectedCityName} 야경`, cat: "야경", indoor: false, stayMin: 70 }
           };
           const tpl = slotLabels[slotType] || slotLabels.afternoon;
           return {
-            id: `auto_${slotType}_${Math.random().toString(36).slice(2, 6)}`,
+            id: `auto_${slotType}_d${dayNum}_${Math.random().toString(36).slice(2, 6)}`,
             slot: slotType,
             stayMin: tpl.stayMin,
             name: tpl.name,
+            mapQuery: tpl.mapQuery,
             category: tpl.cat,
             zone: `${shortCity} 주요권역`,
             indoor: tpl.indoor,
             breakTime: tpl.bt || null,
-            desc: `${state.selectedCityName} 일정 흐름에 맞춰 배정된 추천 코스입니다.`,
+            desc: `${state.selectedCityName} ${dayNum}일차 일정 흐름에 맞춰 배정된 추천 코스입니다.`,
             travelMin: 15
           };
         }
@@ -1532,7 +1611,10 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       const otherZoneObj = zoneDefs.find(z => z.id !== targetZone1) || zoneDefs[0];
       const outerZoneId = otherZoneObj.id;
 
-      let groupedByDay = { 1: [], 2: [], 3: [], 4: [] };
+      let groupedByDay = {};
+      for (let d = 1; d <= state.tripDays; d++) {
+        groupedByDay[d] = [];
+      }
 
       for (let d = 1; d <= state.tripDays; d++) {
         let dayTemplate = [];
@@ -1574,7 +1656,10 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
             { slot: 'afternoon', time: '14:00', zonePref: outerZoneId },
             { slot: 'cafe', time: '16:00', zonePref: outerZoneId }
           ];
-          if (d < state.tripDays) dayTemplate.push({ slot: 'night', time: '18:15', zonePref: morningZone });
+          if (d < state.tripDays) {
+            dayTemplate.push({ slot: 'sunset', time: '17:30', zonePref: morningZone });
+            dayTemplate.push({ slot: 'night', time: '19:00', zonePref: morningZone });
+          }
         }
 
         let maxCount = (d === 1 && state.arrivalHour === 10) ? Math.max(state.density + 1, 5) : state.density;
@@ -1582,7 +1667,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
         const selectedTemplate = dayTemplate.slice(0, maxCount);
         groupedByDay[d] = selectedTemplate.map(t => {
-          const spotObj = pickOneForSlot(t.slot, t.zonePref);
+          const spotObj = pickOneForSlot(t.slot, t.zonePref, d);
           spotObj.time = t.time;
           return spotObj;
         });
@@ -1595,6 +1680,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
           time: "14:00",
           stayMin: 70,
           name: customPinText,
+          mapQuery: `${state.selectedCityName} ${customPinText}`,
           category: "명소",
           zone: state.selectedCityName,
           indoor: true,
@@ -1606,6 +1692,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
       state.daysData = groupedByDay;
 
+      // 1박 이상일 때만 숙소 노드 추가
       for (let d = 1; d < state.tripDays; d++) {
         if (state.stayMode === 'recommend') {
           let recZone = zoneDefs[(d - 1) % zoneDefs.length];
@@ -1654,7 +1741,9 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       }
 
       const h1Def = zoneDefs.find(z => z.id === state.hotel1Zone) || zoneDefs[0];
-      state.routeExplanation = `🏨 <b>[${h1Def.shortZone}] 동선 및 체크인 계산 완료:</b> 마지막 코스 종료 시각과 이동 시간을 반영하여 체크인 시간을 산출했습니다.`;
+      state.routeExplanation = state.tripDays === 1
+        ? `🏃 <b>[당일치기 동선 최적화 완료]</b> 하루 동안 이동 거리를 최소화하여 핵심 명소와 맛집을 둘러보는 코스입니다.`
+        : `🏨 <b>[${h1Def.shortZone}] 동선 및 체크인 계산 완료:</b> 마지막 코스 종료 시각과 이동 시간을 반영하여 체크인 시간을 산출했습니다.`;
 
       state.activeDay = 1;
       document.getElementById('view-unplanned').classList.add('hidden');
@@ -1665,24 +1754,22 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
     }
 
     function renderItineraryView() {
-      const seasonInfo = SEASON_META[state.currentSeason];
       const cMeta = COMPANION_META[state.plannedCompanion];
-      const pMeta = PURPOSE_META[state.plannedPurpose];
       const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
       const dStart = parseLocalDate(state.startDate);
       const dEnd = parseLocalDate(state.endDate);
       const nights = state.tripDays - 1;
-      const isTransit = state.plannedTransport === 'transit';
+      const tripPeriodLabel = state.tripDays === 1 ? "당일치기" : `${nights}박 ${state.tripDays}일`;
 
       document.getElementById('itin-badges').innerHTML = `
         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">📍 ${state.selectedCityName}</span>
-        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">🗓️ ${nights}박 ${state.tripDays}일</span>
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">🗓️ ${tripPeriodLabel}</span>
         ${state.isLiveGenerated ? `<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white">🌐 Google 실시간 검색됨</span>` : ''}
         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">${cMeta.badge}</span>
       `;
 
       const startHourFormatted = formatDisplayTime(`${String(state.arrivalHour).padStart(2, '0')}:00`);
-      document.getElementById('itin-title').innerText = `${state.selectedCityName} ${nights}박 ${state.tripDays}일 맞춤 일정`;
+      document.getElementById('itin-title').innerText = `${state.selectedCityName} ${tripPeriodLabel} 맞춤 일정`;
       document.getElementById('itin-meta').innerText = `${state.startDate}(${dayNames[dStart.getDay()]}) ~ ${state.endDate}(${dayNames[dEnd.getDay()]}) · 첫날 ${startHourFormatted} 시작`;
       document.getElementById('hotel-route-summary').innerHTML = state.routeExplanation;
       document.getElementById('add-btn-day-num').innerText = state.activeDay;
@@ -1691,7 +1778,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
       if (state.isLiveGenerated && state.groundingSources.length > 0) {
         sourcesBox.classList.remove('hidden');
         const linksHtml = state.groundingSources.map(s =>
-          `<a href="${s.uri}" target="_blank" class="inline-block bg-white border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded-md text-[10px] font-semibold hover:bg-emerald-100 mr-1 mb-1">🔗 ${s.title.slice(0, 22)}... ↗</a>`
+          `<a href="${s.uri}" target="_blank" rel="noopener noreferrer" class="inline-block bg-white border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded-md text-[10px] font-semibold hover:bg-emerald-100 mr-1 mb-1">🔗 ${s.title.slice(0, 22)}... ↗</a>`
         ).join("");
         sourcesBox.innerHTML = `<p class="font-bold text-[11px] mb-1">🌐 실시간 웹 검색 참고 출처 (Google Grounding):</p><div>${linksHtml}</div>`;
       } else {
@@ -1707,8 +1794,8 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
         const btn = document.createElement('button');
         btn.onclick = () => switchDay(d);
         btn.className = state.activeDay === d
-          ? "flex-1 py-2 px-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm transition"
-          : "flex-1 py-2 px-1 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition";
+          ? "flex-1 min-w-[78px] py-2 px-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm transition whitespace-nowrap"
+          : "flex-1 min-w-[78px] py-2 px-2 rounded-xl text-xs font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition whitespace-nowrap";
         btn.innerHTML = `Day ${d} <span class="text-[10px] opacity-90">(${count}곳)</span><span class="block text-[10px] font-normal opacity-80">${mDayStr}</span>`;
         tabsContainer.appendChild(btn);
       }
@@ -1733,6 +1820,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
         const displayCategory = isSwappedToPlanB ? "실내 대안(Plan B)" : spot.category;
 
         const resData = getReservationData(spot, state.selectedCityName, isSwappedToPlanB);
+        const exactMapQuery = getCleanPoiQuery(spot, state.selectedCityName, isSwappedToPlanB);
 
         const hourNum = parseInt(assignedTime24.split(':')[0], 10);
         const isBreakTimeConflict = spot.category === '식당' && spot.breakTime && (hourNum >= 15 && hourNum < 17);
@@ -1775,12 +1863,23 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
             </div>
             <div class="flex justify-between items-center pt-1">
               <p class="text-[11px] text-slate-300">${spot.desc}</p>
-              <a href="https://search.naver.com/search.naver?query=${encodeURIComponent(spot.searchQuery + ' 예약')}" target="_blank" class="text-[11px] text-amber-300 font-bold hover:underline whitespace-nowrap ml-2">숙소 검색 ↗</a>
+              <a href="https://search.naver.com/search.naver?query=${encodeURIComponent(spot.searchQuery + ' 예약')}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-amber-300 font-bold hover:underline whitespace-nowrap ml-2">숙소 검색 ↗</a>
             </div>
           `;
         } else {
           const tailoredNote = getTailoredSpotNote(spot);
           const nextDayNum = state.activeDay < state.tripDays ? state.activeDay + 1 : 1;
+
+          // [문제 2 해결] 역슬래시 오타를 완전히 제거하고 안전하게 조립한 예약 뱃지 & 예약 링크 버튼
+          const resBadgeHtml = resData
+            ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">${resData.badgeText}</span>`
+            : '';
+          const resButtonHtml = resData
+            ? `<a href="${resData.url}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold shadow-sm transition whitespace-nowrap">${resData.btnLabel}</a>`
+            : '';
+          const moveDayBtnHtml = state.tripDays > 1
+            ? `<button onclick="moveSpotToOtherDay(${index}, ${nextDayNum})" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition">📅 D${nextDayNum}이동</button>`
+            : '';
 
           item.className = `p-3.5 rounded-2xl border transition relative ${
             isBreakTimeConflict ? 'bg-red-50/70 border-red-300' :
@@ -1810,7 +1909,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
                     }">${displayCategory}</span>
                     ${spot.isNewHot ? `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-rose-500 to-amber-500 text-white">🔥 실시간 신상·핫플</span>` : ''}
                     ${spot.isLiveSpot && !spot.isNewHot ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">🌐 AI 실시간검색</span>` : ''}
-                    ${resData ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">\${resData.badgeText}</span>` : ''}
+                    ${resBadgeHtml}
                   </div>
                   <h4 class="text-sm font-bold text-slate-900 mt-1">${displayName}</h4>
                   <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">${displayDesc}</p>
@@ -1830,17 +1929,13 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
               <div class="flex items-center gap-1 flex-wrap">
                 <button onclick="openSwapModal(${index})" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition">🔄 교체</button>
                 <button onclick="openEditSpotModal(${index})" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition">✏️ 수정·메모</button>
-                <button onclick="moveSpotToOtherDay(${index}, ${nextDayNum})" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold transition">📅 D${nextDayNum}이동</button>
+                ${moveDayBtnHtml}
                 <button onclick="deleteSpot(${index})" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-semibold transition">🗑️ 삭제</button>
               </div>
 
               <div class="flex items-center gap-1.5 ml-auto">
-                ${resData ? `
-                  <a href="\${resData.url}" target="_blank" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold shadow-sm transition whitespace-nowrap">
-                    \${resData.btnLabel}
-                  </a>
-                ` : ''}
-                <a href="https://map.naver.com/p/search/${encodeURIComponent(state.selectedCityName + ' ' + displayName)}" target="_blank" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold transition whitespace-nowrap">
+                ${resButtonHtml}
+                <a href="https://map.naver.com/p/search/${encodeURIComponent(exactMapQuery)}" target="_blank" rel="noopener noreferrer" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold transition whitespace-nowrap">
                   지도·길찾기 ↗
                 </a>
               </div>
@@ -1919,7 +2014,8 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
 
     function moveSpotToOtherDay(index, targetDayNum) {
       const currentList = state.daysData[state.activeDay];
-      const targetList = state.daysData[targetDayNum] || [];
+      if (!state.daysData[targetDayNum]) state.daysData[targetDayNum] = [];
+      const targetList = state.daysData[targetDayNum];
       const spot = currentList.splice(index, 1)[0];
       targetList.push(spot);
       recalculateHotelCheckinTime(state.activeDay);
@@ -2135,6 +2231,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
         target.stayMin = stayVal;
         target.category = catVal;
         target.name = nameVal;
+        target.mapQuery = `${state.selectedCityName} ${nameVal}`;
         target.zone = zoneVal;
         target.resOption = resVal;
         target.customMemo = descVal;
@@ -2150,6 +2247,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
           stayMin: stayVal,
           category: catVal,
           name: nameVal,
+          mapQuery: `${state.selectedCityName} ${nameVal}`,
           zone: zoneVal,
           indoor: true,
           resOption: resVal,
@@ -2255,7 +2353,8 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
         dayBlocks.push(`[Day ${d} - ${dateStr}]\n` + lines.join("\n"));
       }
 
-      const fullText = `✈️ [${state.selectedCityName} ${state.tripDays - 1}박 ${state.tripDays}일 여행 일정표]\n` +
+      const periodStr = state.tripDays === 1 ? "당일치기" : `${state.tripDays - 1}박 ${state.tripDays}일`;
+      const fullText = `✈️ [${state.selectedCityName} ${periodStr} 여행 일정표]\n` +
         `📅 기간: ${state.startDate} ~ ${state.endDate}\n\n` +
         dayBlocks.join("\n\n");
 
@@ -2289,15 +2388,16 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
     function selectChip(group, value, btn) {
       state.unplanned[group] = value;
       document.querySelectorAll(`.chip-${group}`).forEach(b => {
-        b.className = `chip-${group} py-2 px-2 rounded-xl text-xs font-medium border border-slate-200 text-slate-600`;
+        b.className = `chip-${group} py-2 px-1 rounded-xl text-[11px] font-medium border border-slate-200 text-slate-600`;
       });
-      btn.className = `chip-${group} py-2 px-2 rounded-xl text-xs font-bold border border-indigo-600 bg-indigo-50 text-indigo-700`;
+      btn.className = `chip-${group} py-2 px-1 rounded-xl text-[11px] font-bold border border-indigo-600 bg-indigo-50 text-indigo-700`;
     }
 
     function recommendDestinations() {
       const { season, vibe, transport, days } = state.unplanned;
       const container = document.getElementById('unplanned-results');
-      container.innerHTML = `<p class="text-xs font-bold text-slate-700">🎯 취향 매칭 전국 추천 시·군 (${days - 1}박 ${days}일)</p>`;
+      const periodLabel = days === 1 ? "당일치기" : `${days - 1}박 ${days}일`;
+      container.innerHTML = `<p class="text-xs font-bold text-slate-700">🎯 취향 매칭 전국 추천 시·군 (${periodLabel})</p>`;
       const candidates = KOREA_REGIONS.filter(r => r.theme === vibe).slice(0, 3);
       candidates.forEach((r, idx) => {
         const card = document.createElement('div');
@@ -2310,7 +2410,7 @@ Google 실시간 검색을 사용하여 [${state.selectedCityName} ${currentSpot
           <h3 class="text-base font-bold text-slate-900">${r.name}</h3>
           <p class="text-xs text-slate-600">${r.desc}</p>
           <button onclick="startUnplannedItinerary('${r.name}', '${r.prov}', '${season}', '${transport}', ${days})" class="w-full py-2.5 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition">
-            ${r.name} 실시간 AI 일정 생성하기 →
+            ${r.name} (${periodLabel}) 실시간 AI 일정 생성하기 →
           </button>
         `;
         container.appendChild(card);
