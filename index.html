@@ -19,7 +19,7 @@
 <body class="flex justify-center items-start min-h-screen py-4 px-2 sm:py-8">
 
   <script>
-    // 🔑 본인의 실제 Gemini API 키(AIzaSy...)를 입력하세요!
+    // 🔑 본인의 실제 Gemini API 키 설정 완료
     const EMBEDDED_GEMINI_KEY = "AQ.Ab8RN6K9m65ngId-dwjLclZ95gdZsVALRYDE8Nirwb99Q6qA4g";
   </script>
 
@@ -793,7 +793,7 @@
 - 여행지: ${state.selectedCityName} (${state.selectedCityProv})
 - 기간: ${state.startDate} ~ ${state.endDate} (총 ${state.tripDays}일)
 - 첫날 도착 시각: ${state.arrivalHour}:00
-- 하루 스팟 수: ${state.density}곳
+- 하루 스팟 수: ${state.density}곳 (반드시 매일 정확히 ${state.density}개의 장소를 리스트에 포함할 것!)
 - 동행: ${cMeta.label} / 목적: ${pMeta.label}
 - 이동수단: ${state.plannedTransport === 'car' ? '자차' : '대중교통'}
 - 숙소: ${stayDesc}
@@ -1226,6 +1226,7 @@
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">${spot.category}</span>
                     ${spot.isNewHot ? `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500 text-white">🔥 신상·핫플</span>` : ''}
+                    ${resData ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">\${resData.badgeText}</span>` : ''}
                   </div>
                   <h4 class="text-sm font-bold text-slate-900 mt-1">${spot.name}</h4>
                   <p class="text-xs text-slate-600 mt-0.5">${spot.desc}</p>
@@ -1329,7 +1330,7 @@
         div.innerHTML = `<h3 class="text-sm font-bold">${r.name}</h3><p class="text-xs text-slate-500">${r.desc}</p><button onclick="startUnplanned('${r.name}', '${r.prov}', ${days})" class="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg">일정 생성</button>`;
         container.appendChild(div);
       });
-      container.classList.remove('hidden');
+      container.classList.add('hidden');
     }
 
     function startUnplanned(name, prov, days) {
